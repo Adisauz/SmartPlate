@@ -53,12 +53,11 @@ SmartPlate is a robust and scalable **meal planning application** featuring a mo
 
 ### Backend
 - Python 3.x
-- Django 5
-- Django REST Framework
+- FASTAPI
 - PostgreSQL / Amazon Aurora
-- `django-cors-headers`
+- sqlite
 - `python-dotenv`
-- `Pillow` for image handling
+- Google gemma 3N
 
 ### Frontend
 - Mobile app (not included in this repo, but connects to the backend API)
