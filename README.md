@@ -66,15 +66,16 @@ SmartPlate is a robust and scalable **meal planning application** featuring a mo
 
 ## 🗂️ Project Structure (Backend)
 backend/
-  ai.py               # AI-related endpoints (e.g., Q&A, suggestions)
-  auth.py             # User authentication (register, login, JWT handling)
-  database.py         # Database initialization and schema (SQLite)
-  image_upload.py     # Image upload and serving logic
-  main.py             # FastAPI app entry point, router inclusion
-  meals.py            # Meal CRUD endpoints and logic
-  models.py           # Pydantic models for request/response validation
-  pantry.py           # Pantry management endpoints
-  plans.py            # Meal plan management endpoints
-  requirements.txt    # Python dependencies
-  uploaded_images/    # Directory for storing uploaded images
-  venv/               # Python virtual environment (dependencies)
+├── ai.py              # AI-related endpoints (Q&A, recipe suggestions)
+├── auth.py            # User authentication (registration, login, JWT handling)
+├── database.py        # SQLite database setup and schema definitions
+├── image_upload.py    # Image upload handling and file serving
+├── main.py            # FastAPI application entry point and router registration
+├── meals.py           # CRUD operations for meals
+├── models.py          # Pydantic models for request/response validation
+├── pantry.py          # Endpoints for managing pantry inventory
+├── plans.py           # Logic for meal plan creation and management
+├── requirements.txt   # Python package dependencies
+├── uploaded_images/   # Directory for storing uploaded images
+└── venv/              # Virtual environment (local Python dependencies)
+
