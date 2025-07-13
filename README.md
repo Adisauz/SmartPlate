@@ -7,7 +7,7 @@ SmartPlate is a robust and scalable **meal planning application** featuring a mo
 ## 🚀 Key Features
 
 ### ✅ User Authentication
-- Secure registration, login, and user management using FASTAPI’s built-in authentication system.
+- Secure JWT-based authentication: users log in to receive a token, which the app stores and sends with requests for seamless access to protected resources.
 
 ### 🍽️ Meal Management (CRUD)
 - Create, view, update, and delete meals.
