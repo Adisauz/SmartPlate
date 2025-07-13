@@ -7,7 +7,7 @@ SmartPlate is a robust and scalable **meal planning application** featuring a mo
 ## 🚀 Key Features
 
 ### ✅ User Authentication
-- Secure registration, login, and user management using Django’s built-in authentication system.
+- Secure registration, login, and user management using FASTAPI’s built-in authentication system.
 
 ### 🍽️ Meal Management (CRUD)
 - Create, view, update, and delete meals.
