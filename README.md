@@ -1,6 +1,6 @@
 # SmartPlate – Meal Planner App
 
-SmartPlate is a robust and scalable **meal planning application** featuring a mobile frontend and a Django-powered backend. It allows users to create personalized meal plans, manage meals and ingredients, and track nutritional information — all backed by a secure, cloud-ready infrastructure.
+SmartPlate is a robust and scalable **meal planning application** featuring a mobile frontend and a FASTAPI-powered backend. It allows users to create personalized meal plans, manage meals and ingredients, and track nutritional information — all backed by a secure, cloud-ready infrastructure.
 
 ---
 
@@ -24,15 +24,15 @@ SmartPlate is a robust and scalable **meal planning application** featuring a mo
 - Add and manage ingredients with macros per 100g:
   - Calories, protein, carbs, fat
 
-### 🔌 RESTful API
-- Built with Django REST Framework for interaction with the mobile frontend.
+### 🔌 API
+- Built with the FastAPI Framework for interaction with the mobile frontend.
 - Exposes secure API endpoints for:
   - Meals
   - Ingredients
   - Meal plans
 
 ### 🛠️ Admin Interface
-- Full-featured Django admin for managing:
+- Full-featured FASTAPI for managing:
   - Users
   - Meals
   - Plans
