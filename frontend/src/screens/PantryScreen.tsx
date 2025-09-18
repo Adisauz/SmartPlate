@@ -11,6 +11,7 @@ import {
   Image,
   ActivityIndicator,
   SafeAreaView,
+  StyleSheet,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -86,17 +87,6 @@ export const PantryScreen = () => {
     fetchPantryItems(searchQuery);
   }, [searchQuery]);
 
-  const getStockLevelColor = (level: string) => {
-    switch (level) {
-      case 'Low':
-        return '#EF4444';
-      case 'Good':
-        return '#10B981';
-      default:
-        return '#6B7280';
-    }
-  };
-
   const handleAdd = async () => {
     if (!itemName.trim()) return;
     setLoading(true);
@@ -137,11 +127,11 @@ export const PantryScreen = () => {
 
   const showImagePicker = () => {
     Alert.alert(
-      'Select Image',
+      'AI Food Detection',
       'Choose how you want to add an image',
       [
-        { text: 'Camera', onPress: takePhoto },
-        { text: 'Gallery', onPress: pickImage },
+        { text: 'Take Photo', onPress: takePhoto },
+        { text: 'Choose from Gallery', onPress: pickImage },
         { text: 'Cancel', style: 'cancel' },
       ]
     );
@@ -285,27 +275,27 @@ export const PantryScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView style={styles.scrollView}>
           {/* Header */}
-          <View className="px-4 py-4">
-            <View className="flex-row items-center mb-4">
+          <View style={styles.header}>
+            <View style={styles.headerRow}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-3"
+                style={styles.backButton}
               >
                 <Ionicons name="chevron-back" size={24} color="#4F46E5" />
               </TouchableOpacity>
-              <Text className="text-2xl font-bold text-gray-900">My Pantry</Text>
+              <Text style={styles.title}>My Pantry</Text>
             </View>
           </View>
 
           {/* Search Bar */}
-          <View className="px-4 mb-4">
-            <View className="relative">
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
               <TextInput
-                className="w-full px-4 py-3 pl-10 bg-gray-100 rounded-xl"
+                style={styles.searchInput}
                 placeholder="Search pantry items..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -314,7 +304,7 @@ export const PantryScreen = () => {
                 name="search"
                 size={20}
                 color="#6B7280"
-                style={{ position: 'absolute', left: 12, top: 12 }}
+                style={styles.searchIcon}
               />
             </View>
           </View>
@@ -323,24 +313,22 @@ export const PantryScreen = () => {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="px-4 mb-4"
+            style={styles.categoryContainer}
           >
             {categories.map((category) => (
               <TouchableOpacity
                 key={category.id}
                 onPress={() => setSelectedCategory(category.name)}
-                className={`mr-4 py-2 px-4 rounded-full ${
-                  selectedCategory === category.name
-                    ? 'bg-indigo-600'
-                    : 'bg-gray-100'
-                }`}
+                style={[
+                  styles.categoryButton,
+                  selectedCategory === category.name && styles.categoryButtonActive
+                ]}
               >
                 <Text
-                  className={`font-medium ${
-                    selectedCategory === category.name
-                      ? 'text-white'
-                      : 'text-gray-600'
-                  }`}
+                  style={[
+                    styles.categoryText,
+                    selectedCategory === category.name && styles.categoryTextActive
+                  ]}
                 >
                   {category.name}
                 </Text>
@@ -349,57 +337,52 @@ export const PantryScreen = () => {
           </ScrollView>
 
           {/* Pantry Items */}
-          <View className="px-4 py-4">
+          <View style={styles.itemsContainer}>
             {pantryItems.map((item) => (
-              <View
-                key={item.id}
-                className="bg-gray-50 rounded-xl p-4 mb-4"
-              >
-                <View className="flex-row items-center justify-between mb-2">
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-10 h-10 bg-indigo-100 rounded-full items-center justify-center mr-3">
+              <View key={item.id} style={styles.itemCard}>
+                <View style={styles.itemRow}>
+                  <View style={styles.itemInfo}>
+                    <View style={styles.itemIcon}>
                       <Ionicons name="cube-outline" size={20} color="#4F46E5" />
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-lg font-semibold text-gray-900">
-                        {item.name}
-                      </Text>
+                    <View style={styles.itemTextContainer}>
+                      <Text style={styles.itemName}>{item.name}</Text>
                     </View>
                   </View>
-                  <View className="flex-row items-center">
-                    <TouchableOpacity
-                      className="w-8 h-8 bg-white rounded-full items-center justify-center"
-                      onPress={() => handleDelete(item.id)}
-                    >
-                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                    </TouchableOpacity>
-                  </View>
+                  <TouchableOpacity
+                    style={styles.deleteButton}
+                    onPress={() => handleDelete(item.id)}
+                  >
+                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                  </TouchableOpacity>
                 </View>
               </View>
             ))}
           </View>
 
           {/* Add Item Form */}
-          <View className="px-4 py-4">
-            <TextInput value={itemName} onChangeText={setItemName} placeholder="Name" />
-            <Button title={loading ? 'Adding...' : 'Add Item'} onPress={handleAdd} disabled={loading} />
+          <View style={styles.addForm}>
+            <TextInput 
+              value={itemName} 
+              onChangeText={setItemName} 
+              placeholder="Enter item name" 
+              style={styles.addInput}
+            />
+            <Button 
+              title={loading ? 'Adding...' : 'Add Item'} 
+              onPress={handleAdd} 
+              disabled={loading} 
+            />
           </View>
         </ScrollView>
 
         {/* Camera AI Button */}
         <TouchableOpacity
           onPress={showImagePicker}
-          className="absolute bottom-6 right-6 w-16 h-16 bg-indigo-600 rounded-full items-center justify-center shadow-lg"
-          style={{
-            shadowColor: '#4F46E5',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.3,
-            shadowRadius: 8,
-            elevation: 5,
-          }}
+          style={styles.cameraButton}
         >
           <Ionicons name="camera" size={28} color="white" />
-          <View className="absolute -top-1 -right-1 w-6 h-6 bg-green-500 rounded-full items-center justify-center">
+          <View style={styles.aiIndicator}>
             <Ionicons name="sparkles" size={12} color="white" />
           </View>
         </TouchableOpacity>
@@ -418,37 +401,39 @@ export const PantryScreen = () => {
         animationType="slide"
         presentationStyle="pageSheet"
       >
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="flex-1">
+        <SafeAreaView style={styles.modalContainer}>
+          <View style={styles.modalContent}>
             {/* Modal Header */}
-            <View className="flex-row items-center justify-between px-4 py-3 border-b border-gray-200">
+            <View style={styles.modalHeader}>
               <TouchableOpacity onPress={closeCameraModal}>
                 <Ionicons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
-              <Text className="text-lg font-semibold text-gray-900">AI Food Detection</Text>
+              <Text style={styles.modalTitle}>AI Food Detection</Text>
               <TouchableOpacity 
                 onPress={addSelectedItemsToPantry}
                 disabled={selectedItems.length === 0 || loading}
-                className={`px-4 py-2 rounded-lg ${
-                  selectedItems.length > 0 && !loading ? 'bg-indigo-600' : 'bg-gray-300'
-                }`}
+                style={[
+                  styles.addSelectedButton,
+                  (selectedItems.length > 0 && !loading) && styles.addSelectedButtonActive
+                ]}
               >
-                <Text className={`font-medium ${
-                  selectedItems.length > 0 && !loading ? 'text-white' : 'text-gray-500'
-                }`}>
+                <Text style={[
+                  styles.addSelectedText,
+                  (selectedItems.length > 0 && !loading) && styles.addSelectedTextActive
+                ]}>
                   {loading ? 'Adding...' : `Add (${selectedItems.length})`}
                 </Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView className="flex-1 p-4">
+            <ScrollView style={styles.modalScrollView}>
               {/* Selected Image */}
               {selectedImage && (
-                <View className="mb-6">
-                  <Text className="text-lg font-semibold text-gray-900 mb-3">Captured Image</Text>
+                <View style={styles.imageSection}>
+                  <Text style={styles.sectionTitle}>Captured Image</Text>
                   <Image 
                     source={{ uri: selectedImage }} 
-                    className="w-full h-48 rounded-lg"
+                    style={styles.capturedImage}
                     resizeMode="cover"
                   />
                 </View>
@@ -456,19 +441,19 @@ export const PantryScreen = () => {
 
               {/* Detection Status */}
               {isDetecting && (
-                <View className="mb-6 items-center">
+                <View style={styles.loadingSection}>
                   <ActivityIndicator size="large" color="#4F46E5" />
-                  <Text className="text-gray-600 mt-2">Detecting food items...</Text>
+                  <Text style={styles.loadingText}>Detecting food items...</Text>
                 </View>
               )}
 
               {/* Detected Items */}
               {detectedItems.length > 0 && (
-                <View className="mb-6">
-                  <Text className="text-lg font-semibold text-gray-900 mb-3">
+                <View style={styles.detectedSection}>
+                  <Text style={styles.sectionTitle}>
                     Detected Items ({detectedItems.length})
                   </Text>
-                  <Text className="text-sm text-gray-600 mb-4">
+                  <Text style={styles.instructionText}>
                     Select items to add to your pantry:
                   </Text>
                   
@@ -476,27 +461,25 @@ export const PantryScreen = () => {
                     <TouchableOpacity
                       key={index}
                       onPress={() => toggleItemSelection(item.name)}
-                      className={`flex-row items-center justify-between p-4 mb-3 rounded-lg border-2 ${
-                        selectedItems.includes(item.name) 
-                          ? 'border-indigo-500 bg-indigo-50' 
-                          : 'border-gray-200 bg-white'
-                      }`}
+                      style={[
+                        styles.detectedItem,
+                        selectedItems.includes(item.name) && styles.detectedItemSelected
+                      ]}
                     >
-                      <View className="flex-row items-center flex-1">
-                        <View className={`w-6 h-6 rounded-full border-2 items-center justify-center mr-3 ${
-                          selectedItems.includes(item.name)
-                            ? 'border-indigo-500 bg-indigo-500'
-                            : 'border-gray-300'
-                        }`}>
+                      <View style={styles.detectedItemContent}>
+                        <View style={[
+                          styles.checkbox,
+                          selectedItems.includes(item.name) && styles.checkboxSelected
+                        ]}>
                           {selectedItems.includes(item.name) && (
                             <Ionicons name="checkmark" size={16} color="white" />
                           )}
                         </View>
-                        <View className="flex-1">
-                          <Text className="text-lg font-medium text-gray-900">
+                        <View style={styles.detectedItemInfo}>
+                          <Text style={styles.detectedItemName}>
                             {item.name}
                           </Text>
-                          <Text className="text-sm text-gray-600">
+                          <Text style={styles.confidenceText}>
                             Confidence: {item.confidence}%
                           </Text>
                         </View>
@@ -513,17 +496,17 @@ export const PantryScreen = () => {
 
               {/* No Items Detected */}
               {!isDetecting && detectedItems.length === 0 && selectedImage && (
-                <View className="items-center py-8">
+                <View style={styles.noItemsSection}>
                   <Ionicons name="sad-outline" size={48} color="#9CA3AF" />
-                  <Text className="text-lg text-gray-600 mt-2">No food items detected</Text>
-                  <Text className="text-sm text-gray-500 text-center mt-1">
+                  <Text style={styles.noItemsTitle}>No food items detected</Text>
+                  <Text style={styles.noItemsSubtitle}>
                     Try taking another photo with better lighting or different angle
                   </Text>
                   <TouchableOpacity
                     onPress={showImagePicker}
-                    className="mt-4 px-6 py-3 bg-indigo-600 rounded-lg"
+                    style={styles.tryAgainButton}
                   >
-                    <Text className="text-white font-medium">Try Again</Text>
+                    <Text style={styles.tryAgainText}>Try Again</Text>
                   </TouchableOpacity>
                 </View>
               )}
@@ -533,4 +516,309 @@ export const PantryScreen = () => {
       </Modal>
     </View>
   );
-}; 
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  searchInputContainer: {
+    position: 'relative',
+  },
+  searchInput: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingLeft: 40,
+    paddingVertical: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+  },
+  categoryContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  categoryButton: {
+    marginRight: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  categoryButtonActive: {
+    backgroundColor: '#4F46E5',
+  },
+  categoryText: {
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  categoryTextActive: {
+    color: 'white',
+  },
+  itemsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  itemCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  itemInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  itemIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#E0E7FF',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  itemTextContainer: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addForm: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
+  },
+  addInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+  },
+  cameraButton: {
+    position: 'absolute',
+    bottom: 24,
+    right: 24,
+    width: 64,
+    height: 64,
+    backgroundColor: '#4F46E5',
+    borderRadius: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#4F46E5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  aiIndicator: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 24,
+    height: 24,
+    backgroundColor: '#10B981',
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  modalContent: {
+    flex: 1,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  addSelectedButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: '#D1D5DB',
+  },
+  addSelectedButtonActive: {
+    backgroundColor: '#4F46E5',
+  },
+  addSelectedText: {
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  addSelectedTextActive: {
+    color: 'white',
+  },
+  modalScrollView: {
+    flex: 1,
+    padding: 16,
+  },
+  imageSection: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 12,
+  },
+  capturedImage: {
+    width: '100%',
+    height: 200,
+    borderRadius: 8,
+  },
+  loadingSection: {
+    marginBottom: 24,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  detectedSection: {
+    marginBottom: 24,
+  },
+  instructionText: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 16,
+  },
+  detectedItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    backgroundColor: 'white',
+  },
+  detectedItemSelected: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#EEF2FF',
+  },
+  detectedItemContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#D1D5DB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  checkboxSelected: {
+    borderColor: '#4F46E5',
+    backgroundColor: '#4F46E5',
+  },
+  detectedItemInfo: {
+    flex: 1,
+  },
+  detectedItemName: {
+    fontSize: 18,
+    fontWeight: '500',
+    color: '#111827',
+  },
+  confidenceText: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  noItemsSection: {
+    alignItems: 'center',
+    paddingVertical: 32,
+  },
+  noItemsTitle: {
+    fontSize: 18,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  noItemsSubtitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginTop: 4,
+    marginHorizontal: 32,
+  },
+  tryAgainButton: {
+    marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    backgroundColor: '#4F46E5',
+    borderRadius: 8,
+  },
+  tryAgainText: {
+    color: 'white',
+    fontWeight: '500',
+  },
+});

@@ -6,6 +6,7 @@ from plans import router as plans_router
 from pantry import router as pantry_router
 from ai import router as ai_router
 from image_upload import router as upload_router
+from yolo_detection import router as yolo_router
 from database import init_db
 
 app = FastAPI()
@@ -20,6 +21,7 @@ app.include_router(plans_router)     # /plans endpoints
 app.include_router(pantry_router)    # /pantry endpoints
 app.include_router(ai_router)        # /ask-ai endpoint(s)
 app.include_router(upload_router)    # image upload endpoints
+app.include_router(yolo_router)      # /detect endpoints
 
 app.mount("/static", StaticFiles(directory="uploaded_images"), name="static")
 

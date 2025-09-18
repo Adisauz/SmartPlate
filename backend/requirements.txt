@@ -13,3 +13,4 @@ numpy==1.24.4
 openai>=1.0.0
 huggingface_hub
 Pillow
+ultralytics
