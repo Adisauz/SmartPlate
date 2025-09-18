@@ -1,0 +1,15 @@
+fastapi
+uvicorn
+pydantic
+redis
+python-jose[cryptography]
+passlib[bcrypt]
+transformers
+torch
+python-multipart
+aiosqlite
+python-dotenv
+numpy==1.24.4 
+openai>=1.0.0
+huggingface_hub
+Pillow
