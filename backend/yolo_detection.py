@@ -7,6 +7,12 @@ from jose import jwt, JWTError
 from ultralytics import YOLO
 from PIL import Image
 import io
+try:
+    import pillow_heif  # type: ignore[import-not-found]
+    pillow_heif.register_heif_opener()
+except Exception:
+    # If not available, PIL will still handle common formats (JPEG/PNG)
+    pass
 from auth import SECRET_KEY, ALGORITHM
 
 router = APIRouter(prefix="/detect", tags=["detection"])
@@ -16,17 +22,125 @@ security = HTTPBearer(auto_error=False)
 model = YOLO('yolov8n.pt')
 
 # Food items mapping - YOLO class names to common food names
+# Includes an expanded set of fruits and vegetables + some common food classes
 FOOD_ITEMS_MAP = {
+    # Fruits
     'apple': 'Apple',
     'banana': 'Banana',
     'orange': 'Orange',
-    'broccoli': 'Broccoli',
+    'lemon': 'Lemon',
+    'lime': 'Lime',
+    'grapefruit': 'Grapefruit',
+    'tangerine': 'Tangerine',
+    'mandarin': 'Mandarin Orange',
+    'pineapple': 'Pineapple',
+    'mango': 'Mango',
+    'papaya': 'Papaya',
+    'watermelon': 'Watermelon',
+    'cantaloupe': 'Cantaloupe',
+    'honeydew': 'Honeydew',
+    'grape': 'Grapes',
+    'strawberry': 'Strawberry',
+    'blueberry': 'Blueberry',
+    'raspberry': 'Raspberry',
+    'blackberry': 'Blackberry',
+    'cranberry': 'Cranberry',
+    'cherry': 'Cherry',
+    'peach': 'Peach',
+    'nectarine': 'Nectarine',
+    'plum': 'Plum',
+    'apricot': 'Apricot',
+    'kiwi': 'Kiwi',
+    'pomegranate': 'Pomegranate',
+    'pear': 'Pear',
+    'fig': 'Fig',
+    'date': 'Date',
+    'coconut': 'Coconut',
+    'avocado': 'Avocado',
+    'persimmon': 'Persimmon',
+    'guava': 'Guava',
+    'lychee': 'Lychee',
+    'longan': 'Longan',
+    'dragon fruit': 'Dragon Fruit',
+    'passion fruit': 'Passion Fruit',
+    'starfruit': 'Starfruit',
+    'durian': 'Durian',
+    'jackfruit': 'Jackfruit',
+    'plantain': 'Plantain',
+    'mulberry': 'Mulberry',
+    'gooseberry': 'Gooseberry',
+
+    # Vegetables
+    'tomato': 'Tomato',
+    'cucumber': 'Cucumber',
     'carrot': 'Carrot',
-    'hot dog': 'Hot Dog',
+    'potato': 'Potato',
+    'sweet potato': 'Sweet Potato',
+    'yam': 'Yam',
+    'onion': 'Onion',
+    'garlic': 'Garlic',
+    'ginger': 'Ginger',
+    'beet': 'Beet',
+    'radish': 'Radish',
+    'turnip': 'Turnip',
+    'parsnip': 'Parsnip',
+    'pumpkin': 'Pumpkin',
+    'butternut squash': 'Butternut Squash',
+    'acorn squash': 'Acorn Squash',
+    'spaghetti squash': 'Spaghetti Squash',
+    'zucchini': 'Zucchini',
+    'eggplant': 'Eggplant',
+    'bell pepper': 'Bell Pepper',
+    'pepper': 'Pepper',
+    'chili pepper': 'Chili Pepper',
+    'jalapeno': 'Jalapeño',
+    'serrano': 'Serrano Pepper',
+    'habanero': 'Habanero',
+    'corn': 'Corn',
+    'peas': 'Peas',
+    'green bean': 'Green Beans',
+    'asparagus': 'Asparagus',
+    'broccoli': 'Broccoli',
+    'cauliflower': 'Cauliflower',
+    'cabbage': 'Cabbage',
+    'brussels sprout': 'Brussels Sprouts',
+    'lettuce': 'Lettuce',
+    'romaine': 'Romaine Lettuce',
+    'spinach': 'Spinach',
+    'kale': 'Kale',
+    'arugula': 'Arugula',
+    'collard greens': 'Collard Greens',
+    'mustard greens': 'Mustard Greens',
+    'swiss chard': 'Swiss Chard',
+    'celery': 'Celery',
+    'mushroom': 'Mushroom',
+    'okra': 'Okra',
+    'artichoke': 'Artichoke',
+    'leek': 'Leek',
+    'scallion': 'Scallion',
+    'green onion': 'Green Onion',
+    'chive': 'Chives',
+    'fennel': 'Fennel',
+    'shallot': 'Shallot',
+
+    # Herbs
+    'cilantro': 'Cilantro',
+    'parsley': 'Parsley',
+    'basil': 'Basil',
+    'dill': 'Dill',
+    'mint': 'Mint',
+    'rosemary': 'Rosemary',
+    'thyme': 'Thyme',
+    'sage': 'Sage',
+    'oregano': 'Oregano',
+    'bay leaf': 'Bay Leaf',
+
+    # Common COCO food/utensil classes (kept for completeness)
+    'sandwich': 'Sandwich',
     'pizza': 'Pizza',
+    'hot dog': 'Hot Dog',
     'donut': 'Donut',
     'cake': 'Cake',
-    'sandwich': 'Sandwich',
     'bottle': 'Bottle',
     'cup': 'Cup',
     'bowl': 'Bowl',
@@ -53,61 +167,51 @@ async def detect_food_items(
     Detect food items in an uploaded image using YOLO
     """
     try:
-        # Validate file type
-        if not file.content_type.startswith('image/'):
+        # Validate file type (be tolerant if content_type is missing or incorrect)
+        if file.content_type and not file.content_type.startswith('image/'):
             raise HTTPException(status_code=400, detail="File must be an image")
-        
-        # Read image data
+
+        # Read image data into memory and open with PIL to avoid temp file IO issues
         image_data = await file.read()
-        
-        # Create temporary file for YOLO processing
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.jpg') as tmp_file:
-            tmp_file.write(image_data)
-            tmp_file_path = tmp_file.name
-        
         try:
-            # Run YOLO prediction
-            results = model.predict(source=tmp_file_path, save=False, verbose=False)
-            
-            detected_items = []
-            
-            # Process results
-            for result in results:
-                if result.boxes is not None:
-                    boxes = result.boxes
-                    for i in range(len(boxes)):
-                        # Get class name and confidence
-                        class_id = int(boxes.cls[i])
-                        class_name = model.names[class_id]
-                        confidence = float(boxes.conf[i])
-                        
-                        # Only include food items with confidence > 0.5
-                        if confidence > 0.5 and class_name.lower() in FOOD_ITEMS_MAP:
-                            food_name = FOOD_ITEMS_MAP[class_name.lower()]
-                            
-                            # Check if item already detected (avoid duplicates)
-                            if not any(item['name'] == food_name for item in detected_items):
-                                detected_items.append({
-                                    'name': food_name,
-                                    'confidence': round(confidence * 100, 1),
-                                    'yolo_class': class_name
-                                })
-            
-            # Sort by confidence (highest first)
-            detected_items.sort(key=lambda x: x['confidence'], reverse=True)
-            
-            return {
-                'success': True,
-                'detected_items': detected_items,
-                'total_items': len(detected_items),
-                'message': f'Detected {len(detected_items)} food items' if detected_items else 'No food items detected'
-            }
-            
-        finally:
-            # Clean up temporary file
-            if os.path.exists(tmp_file_path):
-                os.unlink(tmp_file_path)
-                
+            image = Image.open(io.BytesIO(image_data)).convert('RGB')
+        except Exception as pil_err:
+            raise HTTPException(status_code=400, detail=f"Invalid image file: {pil_err}")
+
+        # Run YOLO prediction directly on the PIL image
+        results = model.predict(source=image, save=False, verbose=False)
+
+        detected_items = []
+
+        # Process results
+        for result in results:
+            if result.boxes is not None:
+                boxes = result.boxes
+                for i in range(len(boxes)):
+                    class_id = int(boxes.cls[i])
+                    class_name = model.names[class_id]
+                    confidence = float(boxes.conf[i])
+
+                    if confidence > 0.5 and class_name.lower() in FOOD_ITEMS_MAP:
+                        food_name = FOOD_ITEMS_MAP[class_name.lower()]
+                        if not any(item['name'] == food_name for item in detected_items):
+                            detected_items.append({
+                                'name': food_name,
+                                'confidence': round(confidence * 100, 1),
+                                'yolo_class': class_name
+                            })
+
+        detected_items.sort(key=lambda x: x['confidence'], reverse=True)
+
+        return {
+            'success': True,
+            'detected_items': detected_items,
+            'total_items': len(detected_items),
+            'message': f'Detected {len(detected_items)} food items' if detected_items else 'No food items detected'
+        }
+
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
 

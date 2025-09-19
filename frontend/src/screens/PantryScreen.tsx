@@ -151,7 +151,7 @@ export const PantryScreen = () => {
     if (!result.canceled && result.assets[0]) {
       setSelectedImage(result.assets[0].uri);
       setShowCameraModal(true);
-      detectFoodItems(result.assets[0].uri);
+      detectFoodItems(result.assets[0].uri, result.assets[0].mimeType ?? 'image/jpeg', result.assets[0].fileName ?? 'photo');
     }
   };
 
@@ -169,11 +169,11 @@ export const PantryScreen = () => {
     if (!result.canceled && result.assets[0]) {
       setSelectedImage(result.assets[0].uri);
       setShowCameraModal(true);
-      detectFoodItems(result.assets[0].uri);
+      detectFoodItems(result.assets[0].uri, result.assets[0].mimeType ?? 'image/jpeg', result.assets[0].fileName ?? 'image');
     }
   };
 
-  const detectFoodItems = async (imageUri: string) => {
+  const detectFoodItems = async (imageUri: string, mimeType: string, fileName: string) => {
     setIsDetecting(true);
     setDetectedItems([]);
     
@@ -181,15 +181,12 @@ export const PantryScreen = () => {
       const formData = new FormData();
       formData.append('file', {
         uri: imageUri,
-        type: 'image/jpeg',
-        name: 'food-image.jpg',
+        type: mimeType,
+        name: fileName,
       } as any);
 
-      const response = await api.post('/detect/food-items', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Do not set Content-Type manually; let Axios set the proper multipart boundary
+      const response = await api.post('/detect/food-items', formData);
 
       if (response.data.success) {
         setDetectedItems(response.data.detected_items);

@@ -1,0 +1,10 @@
+{
+  "expo": {
+    "name": "SmartPlate",
+    "slug": "smartplate",
+    "version": "1.0.0",
+    "assetBundlePatterns": ["**/*"]
+  }
+}
+
+
