@@ -18,8 +18,8 @@ from auth import SECRET_KEY, ALGORITHM
 router = APIRouter(prefix="/detect", tags=["detection"])
 security = HTTPBearer(auto_error=False)
 
-# Load YOLO model
-model = YOLO('yolov8n.pt')
+# Load YOLO model (local YOLOv11 nano)
+model = YOLO('yolo11n.pt')
 
 # Food items mapping - YOLO class names to common food names
 # Includes an expanded set of fruits and vegetables + some common food classes
