@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from auth import router as auth_router
 from meals import router as meals_router
@@ -10,6 +11,15 @@ from yolo_detection import router as yolo_router
 from database import init_db
 
 app = FastAPI()
+
+# CORS for mobile and local testing
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # tighten in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.on_event("startup")
 async def on_startup():

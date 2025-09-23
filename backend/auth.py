@@ -50,7 +50,8 @@ async def login(user: UserLogin):
         if not pwd_context.verify(user.password, row[1]):
             raise HTTPException(status_code=401, detail="Wrong password")
         user_id = row[0]
-        token = jwt.encode({"user_id": user_id, "username": user.username}, SECRET_KEY, algorithm=ALGORITHM)
+        exp = datetime.utcnow() + timedelta(hours=12)
+        token = jwt.encode({"user_id": user_id, "username": user.username, "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
     return {"access_token": token, "token_type": "bearer", "name": user.username}
 
 @router.post("/forgot-password")

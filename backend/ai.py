@@ -5,7 +5,10 @@ from typing import Optional, List
 from dotenv import load_dotenv
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-from openai import OpenAI
+try:
+    from openai import OpenAI  # type: ignore
+except Exception:
+    OpenAI = None  # type: ignore
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 import aiosqlite
@@ -80,10 +83,10 @@ def generate_food_image(recipe_name: str, ingredients: List[str]) -> str:
 async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_current_user)):
     try:
         api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set in environment")
+        if not api_key or OpenAI is None:
+            raise HTTPException(status_code=503, detail="AI service unavailable")
 
-        client = OpenAI(api_key=api_key)
+        client = OpenAI(api_key=api_key)  # type: ignore
 
         pantry_context = ""
         if user_id is not None:

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
+  Modal,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -34,6 +36,58 @@ export const MealPlannerScreen = () => {
   const jsDay = today.getDay();
   const initialDay = jsDay === 0 ? 6 : jsDay - 1;
   const [selectedDay, setSelectedDay] = useState(initialDay);
+  const [planId, setPlanId] = useState<number | null>(null);
+  const [availableMeals, setAvailableMeals] = useState<Array<{ id: number; name: string }>>([]);
+  const [pickerVisible, setPickerVisible] = useState(false);
+  const [loadingMeals, setLoadingMeals] = useState(false);
+  const [dayMeals, setDayMeals] = useState<Record<number, Array<{ id: number; name: string }>>>({});
+  const [pendingDay, setPendingDay] = useState<number | null>(null);
+
+  const fetchMeals = async () => {
+    try {
+      setLoadingMeals(true);
+      const res = await api.get('/meals/');
+      const items = Array.isArray(res.data)
+        ? res.data.map((m: any) => ({ id: m.id, name: m.name }))
+        : [];
+      setAvailableMeals(items);
+    } catch (e) {
+      // ignore
+    } finally {
+      setLoadingMeals(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMeals();
+  }, []);
+
+  const ensurePlanAndAdd = async (day: number, mealId: number) => {
+    if (planId == null) {
+      const startDate = new Date();
+      const iso = startDate.toISOString().slice(0, 10);
+      const res = await api.post('/plans/', {
+        start_date: iso,
+        items: [{ day, meal_id: mealId }],
+      });
+      setPlanId(res.data.id);
+    } else {
+      await api.post(`/plans/${planId}/add-meal`, { day, meal_id: mealId });
+    }
+
+    setDayMeals((prev) => {
+      const current = prev[day] ?? [];
+      const exists = current.some((m) => m.id === mealId);
+      const meal = availableMeals.find((m) => m.id === mealId);
+      if (!meal) return prev;
+      return { ...prev, [day]: exists ? current : [...current, meal] };
+    });
+  };
+
+  const onPressAddForDay = (day: number) => {
+    setPendingDay(day);
+    setPickerVisible(true);
+  };
 
   return (
     <View className="flex-1 bg-white">
@@ -104,19 +158,24 @@ export const MealPlannerScreen = () => {
                   </Text>
                   <TouchableOpacity
                     className="w-8 h-8 bg-white rounded-full items-center justify-center"
-                    onPress={() => {
-                      // TODO: Add meal
-                    }}
+                    onPress={() => onPressAddForDay(selectedDay)}
                   >
                     <Ionicons name="add" size={20} color="#4F46E5" />
                   </TouchableOpacity>
                 </View>
 
-                {/* Placeholder for meal items */}
+                {/* Planned meals for selected day */}
                 <View className="bg-white rounded-lg p-3">
-                  <Text className="text-gray-600 text-center">
-                    No meals planned
-                  </Text>
+                  {dayMeals[selectedDay] && dayMeals[selectedDay].length > 0 ? (
+                    dayMeals[selectedDay].map((m) => (
+                      <View key={m.id} className="flex-row items-center py-2 border-b border-gray-100">
+                        <View className="w-2 h-2 rounded-full bg-indigo-600 mr-3" />
+                        <Text className="flex-1 text-gray-900">{m.name}</Text>
+                      </View>
+                    ))
+                  ) : (
+                    <Text className="text-gray-600 text-center">No meals planned</Text>
+                  )}
                 </View>
               </View>
             ))}
@@ -152,6 +211,45 @@ export const MealPlannerScreen = () => {
           </View>
         </ScrollView>
       </SafeAreaView>
+
+      {/* Meal Picker Modal */}
+      <Modal visible={pickerVisible} animationType="slide" transparent onRequestClose={() => setPickerVisible(false)}>
+        <View className="flex-1 bg-black/30 justify-end">
+          <View className="bg-white rounded-t-2xl p-4" style={{ maxHeight: '60%' }}>
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="text-lg font-semibold">Select a meal</Text>
+              <TouchableOpacity onPress={() => setPickerVisible(false)} className="px-3 py-1">
+                <Text className="text-indigo-600">Close</Text>
+              </TouchableOpacity>
+            </View>
+            {loadingMeals ? (
+              <View className="py-6 items-center">
+                <ActivityIndicator size="large" color="#4F46E5" />
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }}>
+                {availableMeals.map((m) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    className="py-3 border-b border-gray-100"
+                    onPress={async () => {
+                      if (pendingDay == null) return;
+                      await ensurePlanAndAdd(pendingDay, m.id);
+                      setPickerVisible(false);
+                    }}
+                  >
+                    <Text className="text-gray-900">{m.name}</Text>
+                  </TouchableOpacity>
+                ))}
+                {availableMeals.length === 0 && (
+                  <Text className="text-gray-600 py-6 text-center">No saved meals yet</Text>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
+      </Modal>
+
     </View>
   );
-}; 
+};
