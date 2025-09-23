@@ -138,6 +138,33 @@ export const RecipeDetailScreen = () => {
     });
   };
 
+  const saveMeal = async () => {
+    try {
+      const payload = {
+        name: displayRecipe.name,
+        ingredients: Array.isArray(displayRecipe.ingredients)
+          ? displayRecipe.ingredients.map((i: any) => i.name)
+          : [],
+        instructions: Array.isArray(displayRecipe.instructions)
+          ? displayRecipe.instructions.join('\n')
+          : '',
+        nutrients: {
+          calories: Number(displayRecipe.nutrition?.calories ?? 0) || 0,
+          protein: Number(String(displayRecipe.nutrition?.protein ?? '0').replace(/\D/g, '')) || 0,
+          carbs: Number(String(displayRecipe.nutrition?.carbs ?? '0').replace(/\D/g, '')) || 0,
+          fat: Number(String(displayRecipe.nutrition?.fat ?? '0').replace(/\D/g, '')) || 0,
+        },
+        prep_time: 0,
+        cook_time: 0,
+        image: (recipeData?.image as string) ?? '',
+      };
+      await api.post('/meals/', payload);
+      setToast({ visible: true, message: 'Meal saved', type: 'success' });
+    } catch (e) {
+      setToast({ visible: true, message: 'Failed to save meal', type: 'error' });
+    }
+  };
+
   const resetAnimation = () => {
     slideUpAnimation.setValue(0);
     answerOpacity.setValue(0);
@@ -271,10 +298,10 @@ export const RecipeDetailScreen = () => {
               <View className="flex-row mb-6">
                 <TouchableOpacity
                   className="flex-1 bg-indigo-600 py-3 rounded-lg mr-2"
-                  onPress={handleAddToMealPlan}
+                  onPress={saveMeal}
                 >
                   <Text className="text-white text-center font-semibold">
-                    Add to Meal Plan
+                    Save Meal
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
