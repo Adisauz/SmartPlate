@@ -39,6 +39,7 @@
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@types/react": "~18.3.12",
+    "react-native-worklets": "^0.5.1",
     "typescript": "~5.6.3"
   },
   "private": true,
