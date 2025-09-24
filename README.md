@@ -1,81 +1,39 @@
-# 🍽️ SmartPlate – AI-Powered Meal Planner
+# 🍽️ SmartPlate — AI Meal Planner (Mobile + FastAPI)
 
-SmartPlate is a comprehensive **AI-powered meal planning application** featuring a React Native mobile app and FastAPI backend. It combines traditional meal planning with cutting-edge AI technology for recipe suggestions and intelligent pantry management through computer vision.
-
----
-
-## 🚀 Key Features
-
-### 🤖 AI-Powered Features
-- **AI Chef Assistant**: Get personalized recipe suggestions based on your preferences and dietary needs using OpenAI
-- **Smart Pantry Detection**: Use your camera to automatically detect and add food items to your pantry using YOLO computer vision
-- **Recipe Image Generation**: AI-generated food images for recipes using Stable Diffusion XL via Hugging Face
-
-### 🔐 User Authentication
-- Secure JWT-based authentication system
-- Protected API endpoints with token validation
-- User registration and login functionality
-
-### 🍽️ Meal Management
-- Complete CRUD operations for meals
-- Detailed nutritional information (calories, protein, carbs, fat)
-- Recipe instructions and ingredient lists
-- Cooking time tracking (prep time + cook time)
-- Recipe rating and review system
-
-### 📅 Smart Meal Planning
-- Create personalized meal plans for any date range
-- Assign meals to different meal types (breakfast, lunch, dinner, snacks)
-- Visual calendar interface for easy meal scheduling
-- Nutritional overview for planned meals
-
-### 🥘 Pantry Management
-- **AI Camera Detection**: Take photos or upload images to automatically detect food items
-- Add, edit, and delete pantry items
-- Category-based organization (canned goods, dry goods, spices, etc.)
-- Search and filter functionality
-- Low stock and expiration tracking
-
-### 📱 Mobile Experience
-- Native React Native app with Expo
-- Beautiful, intuitive UI with modern design patterns
-- Responsive layouts optimized for mobile devices
-- Image capture and gallery integration
-- Push notifications support
-
-### 🔌 Robust API
-- FastAPI backend with automatic API documentation
-- RESTful endpoints for all features
-- File upload support for images
-- Real-time data synchronization
+SmartPlate is an AI-powered meal planning app with a React Native (Expo) frontend and a FastAPI backend. It helps you plan meals, manage your pantry with computer vision, and get personalized recipe ideas with AI.
 
 ---
 
-## 🛠️ Technologies Used
+## 🧭 Table of Contents
 
-### Frontend (Mobile)
-- **React Native** with Expo SDK 54
-- **TypeScript** for type safety
-- **React Navigation** for seamless navigation
-- **Expo Image Picker** for camera and gallery access
-- **Axios** for API communication
-- **React Native Gesture Handler** and **Reanimated** for smooth interactions
+- Overview
+- Features
+- Tech Stack
+- Project Structure
+- Quick Start
+- Configuration
+- Common Tasks
+- Troubleshooting
+- Contributing, License, Acknowledgments
 
-### Backend
-- **FastAPI** - Modern, fast web framework for Python
-- **Python 3.10+**
-- **SQLite** database with **aiosqlite** for async operations
-- **JWT Authentication** with python-jose
-- **OpenAI API** for AI chat completions
-- **Ultralytics YOLO** for computer vision food detection
-- **Hugging Face** for image generation with Stable Diffusion XL
-- **Pillow (PIL)** for image processing
+---
 
-### AI & Machine Learning
-- **OpenAI GPT** for recipe suggestions and cooking assistance
-- **YOLOv8** for real-time food item detection
-- **Stable Diffusion XL** for AI-generated food photography
-- **Hugging Face Inference API** for model deployment
+## 🚀 Features
+
+- **AI Chef Assistant**: Personalized recipe suggestions via OpenAI
+- **Smart Pantry Detection**: Detect items from photos using YOLO
+- **AI Images**: Generate appetizing recipe images (Stable Diffusion XL)
+- **Auth**: JWT-based login and protected APIs
+- **Meals & Plans**: CRUD meals, nutrition info, plan by date and meal-type
+- **Mobile-first**: Expo app with modern, responsive UI
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React Native (Expo SDK 54), TypeScript, React Navigation, Axios
+- **Backend**: FastAPI, Python 3.10+, SQLite (aiosqlite), python-jose (JWT)
+- **AI**: OpenAI (chat), Ultralytics YOLO (vision), Stable Diffusion XL via Hugging Face
 
 ---
 
@@ -84,174 +42,143 @@ SmartPlate is a comprehensive **AI-powered meal planning application** featuring
 ```
 mealplanner/
 ├── backend/                 # FastAPI backend
-│   ├── main.py             # FastAPI application entry point
-│   ├── auth.py             # Authentication endpoints
-│   ├── meals.py            # Meal management endpoints
-│   ├── pantry.py           # Pantry management endpoints
-│   ├── plans.py            # Meal planning endpoints
-│   ├── ai.py               # AI chat and recipe generation
-│   ├── yolo_detection.py   # Computer vision food detection
-│   ├── image_upload.py     # Image upload handling
-│   ├── database.py         # Database configuration
-│   ├── models.py           # Data models
-│   ├── requirements.txt    # Python dependencies
-│   ├── run_server.py       # Development server with auto IP detection
-│   └── uploaded_images/    # Static file storage
-├── frontend/               # React Native mobile app
+│   ├── main.py              # App entry
+│   ├── auth.py              # Auth endpoints
+│   ├── meals.py             # Meals endpoints
+│   ├── pantry.py            # Pantry endpoints
+│   ├── plans.py             # Planning endpoints
+│   ├── ai.py                # AI chat/recipes
+│   ├── yolo_detection.py    # CV detection
+│   ├── image_upload.py      # Upload handling
+│   ├── database.py          # DB config
+│   ├── models.py            # Data models
+│   ├── requirements.txt     # Python deps
+│   ├── run_server.py        # Dev server (auto IP)
+│   └── uploaded_images/     # Static storage
+├── frontend/                # React Native app
 │   ├── src/
-│   │   ├── screens/        # App screens
-│   │   │   ├── AIChefScreen.tsx
-│   │   │   ├── PantryScreen.tsx
-│   │   │   ├── MealPlannerScreen.tsx
-│   │   │   └── RecipeDetailScreen.tsx
-│   │   ├── components/     # Reusable components
-│   │   ├── navigation/     # Navigation configuration
-│   │   └── utils/         # API utilities
+│   │   ├── screens/
+│   │   ├── components/
+│   │   ├── navigation/
+│   │   └── utils/
 │   ├── package.json
-│   └── app.json           # Expo configuration
+│   └── app.json
 └── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## ⚡ Quick Start
 
 ### Prerequisites
-- **Node.js** 18+ and npm
-- **Python** 3.10+
-- **Expo CLI**: `npm install -g @expo/cli`
-- **OpenAI API Key**
-- **Hugging Face API Key**
 
-### Backend Setup
+- Node.js 18+ and npm
+- Python 3.10+
+- Expo CLI: `npm i -g @expo/cli`
+- API keys: OpenAI and Hugging Face
 
-1. **Clone and navigate to backend**:
-   ```bash
-   git clone <repository-url>
-   cd mealplanner/backend
-   ```
+### 1) Backend
 
-2. **Create virtual environment**:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
+```bash
+cd mealplanner/backend
+python -m venv venv
+# Windows
+venv\Scripts\activate
+# macOS/Linux
+# source venv/bin/activate
+pip install -r requirements.txt
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+# Environment
+set OPENAI_API_KEY=your_openai_api_key         # Windows (PowerShell: $env:OPENAI_API_KEY)
+set HF_TOKEN=your_hugging_face_token           # Windows (PowerShell: $env:HF_TOKEN)
+# export OPENAI_API_KEY=... && export HF_TOKEN=...   # macOS/Linux
 
-4. **Set up environment variables**:
-   ```bash
-   # Add your API keys to environment variables
-   export OPENAI_API_KEY="your_openai_api_key"
-   export HF_TOKEN="your_hugging_face_token"
-   ```
+python run_server.py
+```
 
-5. **Run the development server**:
-   ```bash
-   python run_server.py
-   ```
-   The server will automatically detect your local IP and display connection info.
+Note the LAN IP shown in the logs (e.g., `http://192.168.x.x:8000`). You will use this in the mobile app.
 
-### Frontend Setup
+### 2) Frontend (Expo)
 
-1. **Navigate to frontend**:
-   ```bash
-   cd ../frontend
-   ```
+```bash
+cd ../frontend
+npm install --legacy-peer-deps
+```
 
-2. **Install dependencies**:
-   ```bash
-   npm install --legacy-peer-deps
-   ```
+Open `frontend/src/utils/api.ts` and set `API_BASE` to your backend URL (LAN IP):
 
-3. **Update API configuration**:
-   - Edit `src/utils/api.ts`
-   - Update `API_BASE` with your backend IP address from the server startup logs
+```ts
+const API_BASE = 'http://192.168.x.x:8000';
+```
 
-4. **Start the development server**:
-   ```bash
-   npx expo start
-   ```
+Then start Expo:
 
-5. **Run on device**:
-   - Install Expo Go app on your phone
-   - Scan the QR code to run the app
-   - Or use `npx expo start --android/--ios` for emulators
+```bash
+npx expo start
+```
 
----
-
-## 📱 App Features Guide
-
-### AI Chef Assistant
-- Navigate to the "AI Chef" tab
-- Ask questions about recipes, cooking techniques, or dietary preferences
-- Get personalized recipe suggestions with AI-generated images
-- Tap recipe cards to view full details and add to meal plans
-
-### Smart Pantry Management
-- Go to "Pantry" screen
-- Tap the camera button (with sparkles icon) to use AI detection
-- Choose "Take Photo" or "Choose from Gallery"
-- AI will automatically detect food items in the image
-- Select detected items to add to your pantry
-- Manually add items using the text input form
-
-### Meal Planning
-- Use the "Meal Planner" to schedule your meals
-- Create custom meal plans for any date range
-- Assign meals to different times of day
-- View nutritional summaries for planned meals
+Use Expo Go on your device to scan the QR, or run `--android` / `--ios` for emulators.
 
 ---
 
 ## 🔧 Configuration
 
-### Backend Configuration
-- **Database**: SQLite by default, easily configurable for PostgreSQL
-- **CORS**: Configured for mobile app access
-- **File Storage**: Local storage for uploaded images
-- **AI Models**: Configurable model parameters in respective modules
+### Backend
 
-### Frontend Configuration
-- **API Endpoint**: Update in `src/utils/api.ts`
-- **Expo Configuration**: Modify `app.json` for app settings
-- **Navigation**: Customize in `src/navigation/AppNavigator.tsx`
+- `OPENAI_API_KEY`: Required for AI chat/completions
+- `HF_TOKEN`: Required for Stable Diffusion XL image generation
+- Database: SQLite by default
+- CORS and file uploads are preconfigured for mobile access
+
+### Frontend
+
+- `API_BASE` in `frontend/src/utils/api.ts` must point to your backend (same network)
+- Expo config via `app.json`
+
+---
+
+## 🧑‍💻 Common Tasks
+
+- Start backend: `python run_server.py`
+- Start app: `npx expo start`
+- Update API base URL: edit `frontend/src/utils/api.ts`
+- View API docs: visit `/docs` on your backend URL in a browser
+
+---
+
+## 🩹 Troubleshooting
+
+- **App cannot reach backend**: Ensure phone and computer are on the same Wi‑Fi. Verify `API_BASE` uses your machine's LAN IP (not localhost).
+- **CORS or 401 errors**: Confirm backend running and JWT token is set; sign in to refresh token.
+- **Expo network issues**: Switch Expo connection mode (LAN/Tunnel) in the Dev Tools.
+- **Image/Camera permissions**: Accept permissions when prompted in Expo Go.
 
 ---
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit changes: `git commit -m 'Add amazing feature'`
-4. Push to branch: `git push origin feature/amazing-feature`
+2. Create a feature branch: `git checkout -b feature/awesome`
+3. Commit: `git commit -m "Add awesome"`
+4. Push: `git push origin feature/awesome`
 5. Open a Pull Request
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+MIT. See `LICENSE` for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- **OpenAI** for powerful language models
-- **Ultralytics** for YOLO computer vision models
-- **Hugging Face** for Stable Diffusion image generation
-- **Expo Team** for excellent React Native development tools
-- **FastAPI** for the amazing Python web framework
+- OpenAI
+- Ultralytics (YOLO)
+- Hugging Face (Stable Diffusion XL)
+- Expo
+- FastAPI
 
 ---
 
-## 📞 Support
-
-For support, please open an issue on GitHub or contact the development team.
-
----
-
-*Built with ❤️ using modern AI and mobile technologies*
+Built with ❤️ using modern AI and mobile technologies.
