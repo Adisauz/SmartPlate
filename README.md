@@ -181,4 +181,3 @@ MIT. See `LICENSE` for details.
 
 ---
 
-Built with ❤️ using modern AI and mobile technologies.

@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
-import AppNavigator from './navigation/AppNavigator';
+import { AppNavigator } from './navigation/AppNavigator';
 import { ThemeProvider, useTheme } from './screens/ThemeContext';
 
 const MainApp = () => {

@@ -17,7 +17,7 @@ def get_local_ip():
             local_ip = s.getsockname()[0]
         return local_ip
     except Exception:
-        return "127.0.0.1"
+        return "192.168.1.11"  # Fallback to your specific IP
 
 if __name__ == "__main__":
     # Get the local IP address

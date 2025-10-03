@@ -1,6 +1,5 @@
 import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { TouchableOpacity } from 'react-native';
 
@@ -32,137 +31,135 @@ export type RootStackParamList = {
   AIChef: undefined;
 };
 
-const Stack = createStackNavigator<RootStackParamList>();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export const AppNavigator = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={({ route, navigation }) => ({
-          headerShown: route.name !== 'Onboarding' && route.name !== 'Login' && route.name !== 'ForgotPassword' && route.name !== 'ResetPassword',
-          headerTitle: '',
+    <Stack.Navigator
+      screenOptions={({ route, navigation }) => ({
+        headerShown: route.name !== 'Onboarding' && route.name !== 'Login' && route.name !== 'ForgotPassword' && route.name !== 'ResetPassword',
+        headerTitle: '',
+        headerTransparent: true,
+        headerBackTitleVisible: false,
+        headerLeft: ({ canGoBack }) =>
+          canGoBack ? (
+            <TouchableOpacity
+              onPress={() => navigation.goBack()}
+              className="ml-4 p-2 rounded-full bg-white/80"
+              style={{
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.1,
+                shadowRadius: 4,
+                elevation: 3,
+              }}
+            >
+              <Ionicons
+                name="chevron-back"
+                size={24}
+                color="#4F46E5"
+              />
+            </TouchableOpacity>
+          ) : null,
+        contentStyle: { backgroundColor: 'white' },
+      })}
+      initialRouteName="Onboarding"
+    >
+      <Stack.Screen 
+        name="Onboarding" 
+        component={OnboardingScreen}
+        options={{ 
+          headerShown: false,
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen 
+        name="Login" 
+        component={LoginScreen}
+        options={{ 
+          headerShown: false,
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen 
+        name="ForgotPassword" 
+        component={ForgotPasswordScreen}
+        options={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen 
+        name="ResetPassword" 
+        component={ResetPasswordScreen}
+        options={{ 
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen 
+        name="Home" 
+        component={HomeScreen}
+        options={{ 
+          headerShown: false,
+          animation: 'fade',
+        }}
+      />
+      <Stack.Screen 
+        name="MealPlanner" 
+        component={MealPlannerScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="Pantry"
+        component={PantryScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="GroceryList"
+        component={GroceryListScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen 
+        name="Profile" 
+        component={ProfileScreen}
+        options={{
+          headerShown: true,
+          headerTitle: 'Profile',
+          headerTitleStyle: {
+            fontSize: 20,
+            fontWeight: '600',
+            color: '#1F2937',
+          },
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="RecipeDetail"
+        component={RecipeDetailScreen}
+        options={{
+          headerShown: false,
           headerTransparent: true,
-          headerBackTitleVisible: false,
-          headerLeft: ({ canGoBack }) =>
-            canGoBack ? (
-              <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                className="ml-4 p-2 rounded-full bg-white/80"
-                style={{
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 4,
-                  elevation: 3,
-                }}
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={24}
-                  color="#4F46E5"
-                />
-              </TouchableOpacity>
-            ) : null,
-          contentStyle: { backgroundColor: 'white' },
-        })}
-        initialRouteName="Onboarding"
-      >
-        <Stack.Screen 
-          name="Onboarding" 
-          component={OnboardingScreen}
-          options={{ 
-            headerShown: false,
-            animation: 'fade',
-          }}
-        />
-        <Stack.Screen 
-          name="Login" 
-          component={LoginScreen}
-          options={{ 
-            headerShown: false,
-            animation: 'fade',
-          }}
-        />
-        <Stack.Screen 
-          name="ForgotPassword" 
-          component={ForgotPasswordScreen}
-          options={{ 
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen 
-          name="ResetPassword" 
-          component={ResetPasswordScreen}
-          options={{ 
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen 
-          name="Home" 
-          component={HomeScreen}
-          options={{ 
-            headerShown: false,
-            animation: 'fade',
-          }}
-        />
-        <Stack.Screen 
-          name="MealPlanner" 
-          component={MealPlannerScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="Pantry"
-          component={PantryScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="GroceryList"
-          component={GroceryListScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen 
-          name="Profile" 
-          component={ProfileScreen}
-          options={{
-            headerShown: true,
-            headerTitle: 'Profile',
-            headerTitleStyle: {
-              fontSize: 20,
-              fontWeight: '600',
-              color: '#1F2937',
-            },
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="RecipeDetail"
-          component={RecipeDetailScreen}
-          options={{
-            headerShown: false,
-            headerTransparent: true,
-            animation: 'slide_from_right',
-          }}
-        />
-        <Stack.Screen
-          name="AIChef"
-          component={AIChefScreen}
-          options={{
-            headerShown: false,
-            animation: 'slide_from_right',
-          }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="AIChef"
+        component={AIChefScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+    </Stack.Navigator>
   );
 }; 
