@@ -9,9 +9,10 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -58,35 +59,35 @@ export const LoginScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <SafeAreaView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          className="flex-1"
+          style={styles.keyboardView}
         >
           <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
             <ScrollView
               contentContainerStyle={{ flexGrow: 1 }}
               keyboardShouldPersistTaps="handled"
             >
-              <View className="flex-1 px-6 py-8">
-                <View className="items-center mb-12">
+              <View style={styles.content}>
+                <View style={styles.header}>
                   <Ionicons name="restaurant" size={64} color="#4F46E5" />
-                  <Text className="text-3xl font-bold text-gray-900 mt-4">
+                  <Text style={styles.welcomeTitle}>
                     Welcome Back
                   </Text>
-                  <Text className="text-base text-gray-600 mt-2">
+                  <Text style={styles.welcomeSubtitle}>
                     Sign in to continue
                   </Text>
                 </View>
 
-                <View className="space-y-4">
-                  <View>
-                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                <View style={styles.formContainer}>
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>
                       Username/Email
                     </Text>
                     <TextInput
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-indigo-500"
+                      style={styles.input}
                       placeholder="Enter your username or email"
                       value={email}
                       onChangeText={setEmail}
@@ -95,20 +96,20 @@ export const LoginScreen = () => {
                     />
                   </View>
 
-                  <View>
-                    <Text className="text-sm font-medium text-gray-700 mb-2">
+                  <View style={styles.inputGroup}>
+                    <Text style={styles.label}>
                       Password
                     </Text>
-                    <View className="relative">
+                    <View style={styles.passwordContainer}>
                       <TextInput
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:border-indigo-500"
+                        style={styles.input}
                         placeholder="Enter your password"
                         value={password}
                         onChangeText={setPassword}
                         secureTextEntry={!showPassword}
                       />
                       <TouchableOpacity
-                        className="absolute right-4 top-3"
+                        style={styles.eyeIcon}
                         onPress={() => setShowPassword(!showPassword)}
                       >
                         <Ionicons
@@ -121,42 +122,42 @@ export const LoginScreen = () => {
                   </View>
 
                   <TouchableOpacity
-                    onPress={() => navigation.navigate('ForgotPassword')}
-                    className="self-end"
+                    onPress={() => navigation.navigate({ name: 'ForgotPassword', params: undefined })}
+                    style={styles.forgotButton}
                   >
-                    <Text className="text-indigo-600 font-medium">
+                    <Text style={styles.forgotText}>
                       Forgot Password?
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    className="w-full bg-indigo-600 py-3 rounded-lg mt-6"
+                    style={styles.signInButton}
                     onPress={handleLogin}
                   >
-                    <Text className="text-white text-center font-semibold text-lg">
+                    <Text style={styles.signInText}>
                       Sign In
                     </Text>
                   </TouchableOpacity>
 
-                  <View className="flex-row items-center justify-center mt-4">
-                    <View className="flex-1 h-px bg-gray-300" />
-                    <Text className="mx-4 text-gray-500">or</Text>
-                    <View className="flex-1 h-px bg-gray-300" />
+                  <View style={styles.dividerContainer}>
+                    <View style={styles.dividerLine} />
+                    <Text style={styles.dividerText}>or</Text>
+                    <View style={styles.dividerLine} />
                   </View>
 
                   <TouchableOpacity
                     onPress={handleSkipAsGuest}
-                    className="bg-gray-100 py-4 rounded-xl"
+                    style={styles.guestButton}
                   >
-                    <Text className="text-gray-700 text-center font-semibold text-lg">
+                    <Text style={styles.guestText}>
                       Skip as Guest
                     </Text>
                   </TouchableOpacity>
 
-                  <View className="flex-row justify-center mt-6">
-                    <Text className="text-gray-600">Don't have an account? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Onboarding')}>
-                      <Text className="text-indigo-600 font-medium">Sign Up</Text>
+                  <View style={styles.signUpContainer}>
+                    <Text style={styles.signUpQuestion}>Don't have an account? </Text>
+                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'Onboarding', params: undefined })}>
+                      <Text style={styles.signUpLink}>Sign Up</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -174,4 +175,124 @@ export const LoginScreen = () => {
       />
     </View>
   );
-}; 
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
+  },
+  welcomeTitle: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginTop: 16,
+  },
+  welcomeSubtitle: {
+    fontSize: 16,
+    color: '#6B7280',
+    marginTop: 8,
+  },
+  formContainer: {
+    gap: 16,
+  },
+  inputGroup: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#374151',
+    marginBottom: 8,
+  },
+  input: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    fontSize: 16,
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  eyeIcon: {
+    position: 'absolute',
+    right: 16,
+    top: 12,
+  },
+  forgotButton: {
+    alignSelf: 'flex-end',
+  },
+  forgotText: {
+    color: '#4F46E5',
+    fontWeight: '500',
+  },
+  signInButton: {
+    width: '100%',
+    backgroundColor: '#4F46E5',
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginTop: 24,
+  },
+  signInText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 18,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#D1D5DB',
+  },
+  dividerText: {
+    marginHorizontal: 16,
+    color: '#6B7280',
+  },
+  guestButton: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  guestText: {
+    color: '#374151',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 18,
+  },
+  signUpContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  signUpQuestion: {
+    color: '#6B7280',
+  },
+  signUpLink: {
+    color: '#4F46E5',
+    fontWeight: '500',
+  },
+}); 

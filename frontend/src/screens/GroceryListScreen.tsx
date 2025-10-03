@@ -5,12 +5,13 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Toast } from '../components/Toast';
 import api from '../utils/api';
 
@@ -89,23 +90,23 @@ export const GroceryListScreen = () => {
   );
 
   return (
-    <View className="flex-1 bg-white">
-      <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView style={styles.scrollView}>
           {/* Header */}
-          <View className="px-4 py-4">
-            <View className="flex-row items-center mb-4">
+          <View style={styles.header}>
+            <View style={styles.headerRow}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-3"
+                style={styles.backButton}
               >
                 <Ionicons name="chevron-back" size={24} color="#4F46E5" />
               </TouchableOpacity>
-              <Text className="text-2xl font-bold text-gray-900">Grocery List</Text>
+              <Text style={styles.title}>Grocery List</Text>
             </View>
-            <View className="flex-row items-center justify-between">
+            <View style={styles.headerActions}>
               <TouchableOpacity
-                className="w-10 h-10 bg-indigo-100 rounded-full items-center justify-center"
+                style={styles.cartButton}
                 onPress={() => {
                   setToast({
                     visible: true,
@@ -120,10 +121,10 @@ export const GroceryListScreen = () => {
           </View>
 
           {/* Search Bar */}
-          <View className="px-4 mb-4">
-            <View className="relative">
+          <View style={styles.searchContainer}>
+            <View style={styles.searchInputContainer}>
               <TextInput
-                className="w-full px-4 py-3 pl-10 bg-gray-100 rounded-xl"
+                style={styles.searchInput}
                 placeholder="Search items..."
                 value={searchQuery}
                 onChangeText={setSearchQuery}
@@ -132,54 +133,53 @@ export const GroceryListScreen = () => {
                 name="search"
                 size={20}
                 color="#6B7280"
-                style={{ position: 'absolute', left: 12, top: 12 }}
+                style={styles.searchIcon}
               />
             </View>
           </View>
 
           {/* Add Item */}
-          <View className="px-4 mb-2">
-            <View className="flex-row items-center space-x-2">
-              <View className="flex-1 relative">
+          <View style={styles.addItemContainer}>
+            <View style={styles.addItemRow}>
+              <View style={styles.addItemInputContainer}>
                 <TextInput
-                  className="w-full px-4 py-3 bg-gray-100 rounded-xl"
+                  style={styles.addItemInput}
                   placeholder="Add pantry item..."
                   value={newItemName}
                   onChangeText={setNewItemName}
                 />
               </View>
               <TouchableOpacity
-                className="ml-3 px-4 py-3 rounded-xl"
-                style={{ backgroundColor: '#4F46E5' }}
+                style={styles.addButton}
                 onPress={addItem}
                 disabled={loading}
               >
-                <Text className="text-white font-semibold">Add</Text>
+                <Text style={styles.addButtonText}>Add</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Pantry Items */}
-          <View className="px-4 py-4">
+          <View style={styles.itemsContainer}>
             {filteredItems.map((item) => (
               <View
                 key={item.id}
-                className="bg-gray-50 rounded-xl p-4 mb-4"
+                style={styles.itemCard}
               >
-                <View className="flex-row items-center justify-between">
-                  <View className="flex-row items-center flex-1">
-                    <View className="w-10 h-10 bg-indigo-100 rounded-full items-center justify-center mr-3">
+                <View style={styles.itemRow}>
+                  <View style={styles.itemLeft}>
+                    <View style={styles.itemIcon}>
                       <Ionicons name="cart-outline" size={20} color="#4F46E5" />
                     </View>
-                    <View className="flex-1">
-                      <Text className="text-lg font-semibold text-gray-900">
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>
                         {item.name}
                       </Text>
                     </View>
                   </View>
-                  <View className="flex-row items-center">
+                  <View style={styles.itemActions}>
                     <TouchableOpacity
-                      className="w-8 h-8 bg-white rounded-full items-center justify-center"
+                      style={styles.deleteButton}
                       onPress={() => deleteItem(item.id)}
                     >
                       <Ionicons name="trash-outline" size={20} color="#EF4444" />
@@ -191,13 +191,13 @@ export const GroceryListScreen = () => {
           </View>
 
           {/* Quick Actions */}
-          <View className="px-4 py-4">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
+          <View style={styles.quickActionsContainer}>
+            <Text style={styles.quickActionsTitle}>
               Quick Actions
             </Text>
-            <View className="flex-row space-x-4">
+            <View style={styles.quickActionsRow}>
               <TouchableOpacity
-                className="flex-1 bg-indigo-100 p-4 rounded-xl"
+                style={[styles.quickActionCard, styles.quickActionOrder]}
                 onPress={() => {
                   setToast({
                     visible: true,
@@ -207,12 +207,12 @@ export const GroceryListScreen = () => {
                 }}
               >
                 <Ionicons name="cart" size={24} color="#4F46E5" />
-                <Text className="text-indigo-600 font-medium mt-2">
+                <Text style={styles.quickActionOrderText}>
                   Order Delivery
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 bg-green-100 p-4 rounded-xl"
+                style={[styles.quickActionCard, styles.quickActionSave]}
                 onPress={() => {
                   setToast({
                     visible: true,
@@ -222,15 +222,13 @@ export const GroceryListScreen = () => {
                 }}
               >
                 <Ionicons name="save" size={24} color="#10B981" />
-                <Text className="text-green-600 font-medium mt-2">
+                <Text style={styles.quickActionSaveText}>
                   Save List
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
         </ScrollView>
-
-        {/* Optional: could keep a floating add button in future */}
       </SafeAreaView>
 
       <Toast
@@ -241,4 +239,187 @@ export const GroceryListScreen = () => {
       />
     </View>
   );
-}; 
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cartButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  searchInputContainer: {
+    position: 'relative',
+  },
+  searchInput: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingLeft: 40,
+    paddingVertical: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 12,
+    top: 12,
+  },
+  addItemContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 8,
+  },
+  addItemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addItemInputContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  addItemInput: {
+    width: '100%',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#F3F4F6',
+    borderRadius: 12,
+  },
+  addButton: {
+    marginLeft: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#4F46E5',
+  },
+  addButtonText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  itemsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  itemCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  itemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  itemIcon: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  itemActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  deleteButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickActionsContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  quickActionsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  quickActionCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+  },
+  quickActionOrder: {
+    backgroundColor: '#EEF2FF',
+  },
+  quickActionSave: {
+    backgroundColor: '#D1FAE5',
+  },
+  quickActionOrderText: {
+    color: '#4F46E5',
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  quickActionSaveText: {
+    color: '#059669',
+    fontWeight: '500',
+    marginTop: 8,
+  },
+}); 

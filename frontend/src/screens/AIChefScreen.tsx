@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import api from '../utils/api';
 
@@ -145,7 +145,7 @@ export const AIChefScreen = () => {
   };
 
   const handleRecipePress = (recipe: Recipe) => {
-    navigation.navigate('RecipeDetail', { recipe });
+    navigation.navigate({ name: 'RecipeDetail', params: { recipe } });
   };
 
 

@@ -11,7 +11,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
@@ -99,7 +99,7 @@ export const ResetPasswordScreen = () => {
 
       // Navigate to login screen after a short delay
       setTimeout(() => {
-        navigation.navigate('Login');
+        navigation.navigate({ name: 'Login', params: undefined });
       }, 2000);
     } catch (err: any) {
       let errorMessage = 'Failed to reset password';
@@ -249,14 +249,14 @@ export const ResetPasswordScreen = () => {
 
                   <View className="flex-row justify-center mt-6">
                     <Text className="text-gray-600">Don't have a token? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
+                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'ForgotPassword', params: undefined })}>
                       <Text className="text-indigo-600 font-medium">Get Reset Token</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View className="flex-row justify-center mt-2">
                     <Text className="text-gray-600">Remember your password? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'Login', params: undefined })}>
                       <Text className="text-indigo-600 font-medium">Sign In</Text>
                     </TouchableOpacity>
                   </View>

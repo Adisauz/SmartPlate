@@ -11,7 +11,7 @@ import {
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -76,9 +76,9 @@ export const ForgotPasswordScreen = () => {
 
   const navigateToResetPassword = () => {
     if (resetToken) {
-      navigation.navigate('ResetPassword', { resetToken });
+      navigation.navigate({ name: 'ResetPassword', params: { resetToken } });
     } else {
-      navigation.navigate('ResetPassword', { resetToken: '' });
+      navigation.navigate({ name: 'ResetPassword', params: { resetToken: '' } });
     }
   };
 
@@ -177,7 +177,7 @@ export const ForgotPasswordScreen = () => {
 
                   <View className="flex-row justify-center mt-6">
                     <Text className="text-gray-600">Remember your password? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'Login', params: undefined })}>
                       <Text className="text-indigo-600 font-medium">Sign In</Text>
                     </TouchableOpacity>
                   </View>

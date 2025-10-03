@@ -74,15 +74,15 @@ export const OnboardingScreen = () => {
 
   return (
     <ThemeProvider>
-      <View style={{ flex: 1, backgroundColor: theme === 'dark' ? '#222' : '#fff' }}>
-        <SafeAreaView className="flex-1 bg-white">
-          <View className="flex-1">
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
+          <View style={styles.innerContainer}>
             {/* Skip button */}
             <TouchableOpacity
               onPress={handleSkip}
-              className="absolute right-4 top-4 z-10"
+              style={styles.skipButton}
             >
-              <Text className="text-indigo-600 font-medium">Skip</Text>
+              <Text style={styles.skipText}>Skip</Text>
             </TouchableOpacity>
 
             {/* Slides */}
@@ -93,24 +93,23 @@ export const OnboardingScreen = () => {
               showsHorizontalScrollIndicator={false}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              className="flex-1"
+              style={styles.scrollView}
             >
               {slides.map((slide) => (
                 <View
                   key={slide.id}
-                  style={{ width }}
-                  className="items-center justify-center px-4"
+                  style={[styles.slideContainer, { width }]}
                 >
                   <Image
                     source={{ uri: slide.image }}
-                    className="w-72 h-72 mb-8 rounded-xl"
+                    style={styles.slideImage}
                     resizeMode="cover"
                     onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
                   />
-                  <Text className="text-2xl font-bold text-gray-900 mb-2 text-center">
+                  <Text style={styles.slideTitle}>
                     {slide.title}
                   </Text>
-                  <Text className="text-base text-gray-600 text-center mb-8">
+                  <Text style={styles.slideDescription}>
                     {slide.description}
                   </Text>
                 </View>
@@ -118,24 +117,25 @@ export const OnboardingScreen = () => {
             </ScrollView>
 
             {/* Pagination */}
-            <View className="flex-row justify-center mb-8">
+            <View style={styles.paginationContainer}>
               {slides.map((_, index) => (
                 <View
                   key={index}
-                  className={`h-2 w-2 rounded-full mx-1 ${
-                    index === currentSlideIndex ? 'bg-indigo-600' : 'bg-gray-300'
-                  }`}
+                  style={[
+                    styles.paginationDot,
+                    index === currentSlideIndex && styles.paginationDotActive
+                  ]}
                 />
               ))}
             </View>
 
             {/* Next/Get Started button */}
-            <View className="px-4 mb-8">
+            <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={handleNext}
-                className="bg-indigo-600 py-4 rounded-xl"
+                style={styles.nextButton}
               >
-                <Text className="text-white text-center font-semibold text-lg">
+                <Text style={styles.nextButtonText}>
                   {currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}
                 </Text>
               </TouchableOpacity>
@@ -278,6 +278,86 @@ const AskAIScreen = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#ffffff',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  innerContainer: {
+    flex: 1,
+  },
+  skipButton: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    zIndex: 10,
+  },
+  skipText: {
+    color: '#4F46E5',
+    fontWeight: '500',
+  },
+  scrollView: {
+    flex: 1,
+  },
+  slideContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 16,
+  },
+  slideImage: {
+    width: 288,
+    height: 288,
+    marginBottom: 32,
+    borderRadius: 12,
+  },
+  slideTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  slideDescription: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 32,
+  },
+  paginationDot: {
+    height: 8,
+    width: 8,
+    borderRadius: 4,
+    backgroundColor: '#D1D5DB',
+    marginHorizontal: 4,
+  },
+  paginationDotActive: {
+    backgroundColor: '#4F46E5',
+  },
+  buttonContainer: {
+    paddingHorizontal: 16,
+    marginBottom: 32,
+  },
+  nextButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  nextButtonText: {
+    color: '#ffffff',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 18,
+  },
+});
 
 export default AskAIScreen; 
 

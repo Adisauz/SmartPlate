@@ -11,6 +11,7 @@ import {
   Platform,
   Animated,
   SafeAreaView,
+  StyleSheet,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -197,7 +198,11 @@ export const RecipeDetailScreen = () => {
     }).start();
 
     try {
-      const res = await api.post('/ask-ai/', { question });
+      // Include recipe context in the question
+      const recipeContext = `I'm looking at a recipe called "${displayRecipe.name}". The ingredients are: ${displayRecipe.ingredients.map((i: any) => i.name).join(', ')}. `;
+      const fullQuestion = recipeContext + question;
+      
+      const res = await api.post('/ask-ai/', { question: fullQuestion });
       setAIAnswer(res.data.answer);
       
       // Fade in the answer
@@ -221,49 +226,35 @@ export const RecipeDetailScreen = () => {
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1 }}
+      style={styles.keyboardView}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       keyboardVerticalOffset={80}
     >
-      <View className="flex-1 bg-white">
-        <SafeAreaView className="flex-1">
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeArea}>
           <ScrollView
             showsVerticalScrollIndicator={false}
-            className="flex-1"
+            style={styles.scrollView}
             keyboardShouldPersistTaps="handled"
           >
             {/* Recipe Image with Back Button and Favorite Button */}
-            <View className="relative h-72">
+            <View style={styles.imageContainer}>
               <Image
                 source={{ uri: displayRecipe.image }}
-                className="w-full h-full"
+                style={styles.recipeImage}
                 resizeMode="cover"
               />
-              <View className="absolute inset-0 bg-black/20" />
-              <View className="absolute top-0 left-0 right-0 flex-row justify-between items-center p-4">
+              <View style={styles.imageOverlay} />
+              <View style={styles.headerButtons}>
                 <TouchableOpacity
                   onPress={() => navigation.goBack()}
-                  className="w-10 h-10 rounded-full bg-white/90 items-center justify-center"
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3,
-                  }}
+                  style={[styles.headerButton, styles.headerButtonShadow]}
                 >
                   <Ionicons name="chevron-back" size={24} color="#4F46E5" />
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={toggleFavorite}
-                  className="w-10 h-10 rounded-full bg-white/90 items-center justify-center"
-                  style={{
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.1,
-                    shadowRadius: 4,
-                    elevation: 3,
-                  }}
+                  style={[styles.headerButton, styles.headerButtonShadow]}
                 >
                   <Ionicons
                     name={isFavorite ? 'heart' : 'heart-outline'}
@@ -275,60 +266,60 @@ export const RecipeDetailScreen = () => {
             </View>
 
             {/* Recipe Info */}
-            <View className="px-6 py-4 bg-white rounded-t-3xl -mt-6">
-              <Text className="text-2xl font-bold text-gray-900 mb-2">
+            <View style={styles.infoContainer}>
+              <Text style={styles.recipeName}>
                 {displayRecipe.name}
               </Text>
-              <View className="flex-row items-center mb-4">
-                <View className="flex-row items-center mr-4">
+              <View style={styles.metaRow}>
+                <View style={styles.metaItem}>
                   <Ionicons name="time-outline" size={20} color="#6B7280" />
-                  <Text className="text-gray-600 ml-1">{displayRecipe.time}</Text>
+                  <Text style={styles.metaText}>{displayRecipe.time}</Text>
                 </View>
-                <View className="flex-row items-center mr-4">
+                <View style={styles.metaItem}>
                   <Ionicons name="people-outline" size={20} color="#6B7280" />
-                  <Text className="text-gray-600 ml-1">{displayRecipe.servings} servings</Text>
+                  <Text style={styles.metaText}>{displayRecipe.servings} servings</Text>
                 </View>
-                <View className="flex-row items-center">
+                <View style={styles.metaItem}>
                   <Ionicons name="flame-outline" size={20} color="#6B7280" />
-                  <Text className="text-gray-600 ml-1">{displayRecipe.calories} cal</Text>
+                  <Text style={styles.metaText}>{displayRecipe.calories} cal</Text>
                 </View>
               </View>
 
               {/* Action Buttons */}
-              <View className="flex-row mb-6">
+              <View style={styles.actionButtons}>
                 <TouchableOpacity
-                  className="flex-1 bg-indigo-600 py-3 rounded-lg mr-2"
+                  style={[styles.actionButton, styles.saveButton]}
                   onPress={saveMeal}
                 >
-                  <Text className="text-white text-center font-semibold">
+                  <Text style={styles.saveButtonText}>
                     Save Meal
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  className="flex-1 bg-indigo-100 py-3 rounded-lg ml-2"
+                  style={[styles.actionButton, styles.groceryButton]}
                   onPress={handleAddToGroceryList}
                 >
-                  <Text className="text-indigo-600 text-center font-semibold">
+                  <Text style={styles.groceryButtonText}>
                     Add to Grocery List
                   </Text>
                 </TouchableOpacity>
               </View>
 
               {/* Ingredients */}
-              <View className="mb-6">
-                <Text className="text-xl font-bold text-gray-900 mb-4">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
                   Ingredients
                 </Text>
                 {displayRecipe.ingredients.map((ingredient: any) => (
                   <View
                     key={ingredient.id}
-                    className="flex-row items-center py-2 border-b border-gray-100"
+                    style={styles.ingredientItem}
                   >
-                    <View className="w-2 h-2 rounded-full bg-indigo-600 mr-3" />
-                    <Text className="flex-1 text-gray-900">
+                    <View style={styles.ingredientBullet} />
+                    <Text style={styles.ingredientName}>
                       {ingredient.name}
                     </Text>
-                    <Text className="text-gray-600">
+                    <Text style={styles.ingredientAmount}>
                       {ingredient.amount} {ingredient.unit}
                     </Text>
                   </View>
@@ -336,21 +327,21 @@ export const RecipeDetailScreen = () => {
               </View>
 
               {/* Instructions */}
-              <View className="mb-6">
-                <Text className="text-xl font-bold text-gray-900 mb-4">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
                   Instructions
                 </Text>
                 {displayRecipe.instructions.map((instruction: any, index: number) => (
                   <View
                     key={index}
-                    className="flex-row items-start py-2 border-b border-gray-100"
+                    style={styles.instructionItem}
                   >
-                    <View className="w-6 h-6 rounded-full bg-indigo-100 items-center justify-center mr-3 mt-1">
-                      <Text className="text-indigo-600 font-medium">
+                    <View style={styles.instructionNumber}>
+                      <Text style={styles.instructionNumberText}>
                         {index + 1}
                       </Text>
                     </View>
-                    <Text className="flex-1 text-gray-900">
+                    <Text style={styles.instructionText}>
                       {instruction}
                     </Text>
                   </View>
@@ -358,32 +349,32 @@ export const RecipeDetailScreen = () => {
               </View>
 
               {/* Nutrition */}
-              <View className="mb-6">
-                <Text className="text-xl font-bold text-gray-900 mb-4">
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>
                   Nutrition
                 </Text>
-                <View className="bg-gray-50 rounded-xl p-4">
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-gray-600">Calories</Text>
-                    <Text className="text-gray-900 font-medium">
+                <View style={styles.nutritionCard}>
+                  <View style={styles.nutritionRow}>
+                    <Text style={styles.nutritionLabel}>Calories</Text>
+                    <Text style={styles.nutritionValue}>
                       {displayRecipe.nutrition.calories}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-gray-600">Protein</Text>
-                    <Text className="text-gray-900 font-medium">
+                  <View style={styles.nutritionRow}>
+                    <Text style={styles.nutritionLabel}>Protein</Text>
+                    <Text style={styles.nutritionValue}>
                       {displayRecipe.nutrition.protein}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between mb-2">
-                    <Text className="text-gray-600">Carbs</Text>
-                    <Text className="text-gray-900 font-medium">
+                  <View style={styles.nutritionRow}>
+                    <Text style={styles.nutritionLabel}>Carbs</Text>
+                    <Text style={styles.nutritionValue}>
                       {displayRecipe.nutrition.carbs}
                     </Text>
                   </View>
-                  <View className="flex-row justify-between">
-                    <Text className="text-gray-600">Fat</Text>
-                    <Text className="text-gray-900 font-medium">
+                  <View style={styles.nutritionRow}>
+                    <Text style={styles.nutritionLabel}>Fat</Text>
+                    <Text style={styles.nutritionValue}>
                       {displayRecipe.nutrition.fat}
                     </Text>
                   </View>
@@ -394,40 +385,28 @@ export const RecipeDetailScreen = () => {
         </SafeAreaView>
 
         {/* AI Q&A Section */}
-        <View style={{ padding: 16, minHeight: 120 }}>
+        <View style={styles.aiSection}>
           <Animated.View 
             style={{
               transform: [{ translateY: slideUpAnimation }],
             }}
           >
-            <Text style={{ fontWeight: 'bold', marginBottom: 8 }}>Ask AI about this recipe:</Text>
+            <Text style={styles.aiTitle}>Ask AI about this recipe:</Text>
             <TextInput
               placeholder="Type your question..."
               value={question}
               onChangeText={handleQuestionChange}
-              style={{
-                borderWidth: 1,
-                borderColor: '#ccc',
-                borderRadius: 8,
-                padding: 8,
-                marginBottom: 8,
-                backgroundColor: '#fff',
-              }}
+              style={styles.aiInput}
               editable={!isAsking}
               multiline={true}
               numberOfLines={2}
             />
             <TouchableOpacity
-              style={{
-                backgroundColor: isAsking ? '#9CA3AF' : '#4F46E5',
-                padding: 12,
-                borderRadius: 8,
-                alignItems: 'center',
-              }}
+              style={[styles.aiButton, isAsking && styles.aiButtonDisabled]}
               onPress={() => askAI(question)}
               disabled={isAsking}
             >
-              <Text style={{ color: 'white', fontWeight: 'bold' }}>
+              <Text style={styles.aiButtonText}>
                 {isAsking ? 'Asking...' : 'Ask AI'}
               </Text>
             </TouchableOpacity>
@@ -435,20 +414,12 @@ export const RecipeDetailScreen = () => {
           
           {AIAnswer ? (
             <Animated.View 
-              style={{ 
-                marginTop: 16,
-                opacity: answerOpacity,
-                backgroundColor: '#F3F4F6',
-                padding: 12,
-                borderRadius: 8,
-                borderLeftWidth: 4,
-                borderLeftColor: '#4F46E5',
-              }}
+              style={[styles.aiAnswer, { opacity: answerOpacity }]}
             >
-              <Text style={{ fontWeight: 'bold', marginBottom: 4, color: '#4F46E5' }}>
+              <Text style={styles.aiAnswerTitle}>
                 AI Chef Says:
               </Text>
-              <Text style={{ color: '#374151', lineHeight: 20 }}>
+              <Text style={styles.aiAnswerText}>
                 {AIAnswer}
               </Text>
             </Animated.View>
@@ -464,4 +435,234 @@ export const RecipeDetailScreen = () => {
       </View>
     </KeyboardAvoidingView>
   );
-}; 
+};
+
+const styles = StyleSheet.create({
+  keyboardView: {
+    flex: 1,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  imageContainer: {
+    position: 'relative',
+    height: 288,
+  },
+  recipeImage: {
+    width: '100%',
+    height: '100%',
+  },
+  imageOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+  },
+  headerButtons: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerButtonShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  infoContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    backgroundColor: 'white',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    marginTop: -24,
+  },
+  recipeName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  metaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  metaText: {
+    color: '#6B7280',
+    marginLeft: 4,
+  },
+  actionButtons: {
+    flexDirection: 'row',
+    marginBottom: 24,
+  },
+  actionButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  saveButton: {
+    backgroundColor: '#4F46E5',
+    marginRight: 8,
+  },
+  groceryButton: {
+    backgroundColor: '#EEF2FF',
+    marginLeft: 8,
+  },
+  saveButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  groceryButtonText: {
+    color: '#4F46E5',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  ingredientItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  ingredientBullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4F46E5',
+    marginRight: 12,
+  },
+  ingredientName: {
+    flex: 1,
+    color: '#111827',
+  },
+  ingredientAmount: {
+    color: '#6B7280',
+  },
+  instructionItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  instructionNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    marginTop: 4,
+  },
+  instructionNumberText: {
+    color: '#4F46E5',
+    fontWeight: '500',
+  },
+  instructionText: {
+    flex: 1,
+    color: '#111827',
+  },
+  nutritionCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+  },
+  nutritionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  nutritionLabel: {
+    color: '#6B7280',
+  },
+  nutritionValue: {
+    color: '#111827',
+    fontWeight: '500',
+  },
+  aiSection: {
+    padding: 16,
+    minHeight: 120,
+  },
+  aiTitle: {
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  aiInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+  },
+  aiButton: {
+    backgroundColor: '#4F46E5',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  aiButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  aiButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  aiAnswer: {
+    marginTop: 16,
+    backgroundColor: '#F3F4F6',
+    padding: 12,
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#4F46E5',
+  },
+  aiAnswerTitle: {
+    fontWeight: 'bold',
+    marginBottom: 4,
+    color: '#4F46E5',
+  },
+  aiAnswerText: {
+    color: '#374151',
+    lineHeight: 20,
+  },
+}); 

@@ -6,12 +6,13 @@ import {
   TouchableOpacity,
   Image,
   Switch,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Toast } from '../components/Toast';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
@@ -76,7 +77,7 @@ export const ProfileScreen = () => {
     });
     // Navigate to login screen after a short delay
     setTimeout(() => {
-      navigation.navigate('Login');
+  navigation.navigate({ name: 'Login', params: undefined });
     }, 1500);
   };
 
@@ -89,32 +90,32 @@ export const ProfileScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView style={styles.scrollView}>
           {/* Profile Header */}
-          <View className="px-6 py-8 items-center">
-            <View className="w-24 h-24 rounded-full bg-indigo-100 items-center justify-center mb-4">
+          <View style={styles.header}>
+            <View style={styles.avatarContainer}>
               <Ionicons name="person" size={48} color="#4F46E5" />
             </View>
-            <Text className="text-2xl font-bold text-gray-900 mb-1">
+            <Text style={styles.name}>
               John Doe
             </Text>
-            <Text className="text-gray-600">john.doe@example.com</Text>
+            <Text style={styles.email}>john.doe@example.com</Text>
           </View>
 
           {/* Menu Items */}
-          <View className="px-6 py-4">
+          <View style={styles.menuContainer}>
             {menuItems.map((item) => (
               <TouchableOpacity
                 key={item.id}
-                className="flex-row items-center py-4 border-b border-gray-100"
+                style={styles.menuItem}
                 onPress={() => handleMenuItemPress(item.route)}
               >
-                <View className="w-8 h-8 rounded-full bg-indigo-100 items-center justify-center mr-4">
+                <View style={styles.menuIconContainer}>
                   <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={20} color="#4F46E5" />
                 </View>
-                <Text className="flex-1 text-base text-gray-900">
+                <Text style={styles.menuItemText}>
                   {item.title}
                 </Text>
                 <Ionicons name="chevron-forward" size={20} color="#6B7280" />
@@ -123,13 +124,13 @@ export const ProfileScreen = () => {
           </View>
 
           {/* Dark Mode Toggle */}
-          <View className="px-6 py-4">
-            <View className="flex-row items-center justify-between py-4">
-              <View className="flex-row items-center">
-                <View className="w-8 h-8 rounded-full bg-indigo-100 items-center justify-center mr-4">
+          <View style={styles.darkModeContainer}>
+            <View style={styles.darkModeRow}>
+              <View style={styles.darkModeLeft}>
+                <View style={styles.menuIconContainer}>
                   <Ionicons name="moon" size={20} color="#4F46E5" />
                 </View>
-                <Text className="text-base text-gray-900">Dark Mode</Text>
+                <Text style={styles.menuItemText}>Dark Mode</Text>
               </View>
               <Switch
                 value={darkMode}
@@ -141,12 +142,12 @@ export const ProfileScreen = () => {
           </View>
 
           {/* Logout Button */}
-          <View className="px-6 py-4">
+          <View style={styles.logoutContainer}>
             <TouchableOpacity
-              className="w-full bg-red-50 py-3 rounded-lg"
+              style={styles.logoutButton}
               onPress={handleLogout}
             >
-              <Text className="text-red-600 text-center font-semibold text-lg">
+              <Text style={styles.logoutText}>
                 Log Out
               </Text>
             </TouchableOpacity>
@@ -162,4 +163,95 @@ export const ProfileScreen = () => {
       />
     </View>
   );
-}; 
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 32,
+    alignItems: 'center',
+  },
+  avatarContainer: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  name: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 4,
+  },
+  email: {
+    color: '#6B7280',
+  },
+  menuContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  menuIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  menuItemText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+  },
+  darkModeContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  darkModeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+  },
+  darkModeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  logoutContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  logoutButton: {
+    width: '100%',
+    backgroundColor: '#FEF2F2',
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  logoutText: {
+    color: '#DC2626',
+    textAlign: 'center',
+    fontWeight: '600',
+    fontSize: 18,
+  },
+}); 

@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   ActivityIndicator,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -90,23 +91,23 @@ export const MealPlannerScreen = () => {
   };
 
   return (
-    <View className="flex-1 bg-white">
-      <SafeAreaView className="flex-1">
-        <ScrollView className="flex-1">
+    <View style={styles.container}>
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView style={styles.scrollView}>
           {/* Header */}
-          <View className="px-4 py-4">
-            <View className="flex-row items-center mb-4">
+          <View style={styles.header}>
+            <View style={styles.headerRow}>
               <TouchableOpacity
                 onPress={() => navigation.goBack()}
-                className="w-10 h-10 rounded-full bg-gray-100 items-center justify-center mr-3"
+                style={styles.backButton}
               >
                 <Ionicons name="chevron-back" size={24} color="#4F46E5" />
               </TouchableOpacity>
-              <Text className="text-2xl font-bold text-gray-900">Meal Planner</Text>
+              <Text style={styles.title}>Meal Planner</Text>
             </View>
-            <View className="flex-row items-center justify-between">
+            <View style={styles.headerActions}>
               <TouchableOpacity
-                className="w-10 h-10 bg-indigo-100 rounded-full items-center justify-center"
+                style={styles.addButton}
                 onPress={() => {
                   // TODO: Add new meal plan
                 }}
@@ -120,24 +121,22 @@ export const MealPlannerScreen = () => {
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            className="px-6"
+            style={styles.daySelector}
           >
             {days.map((day, index) => (
               <TouchableOpacity
                 key={day}
-                className={`mr-4 py-2 px-4 rounded-full ${
-                  selectedDay === index
-                    ? 'bg-indigo-600'
-                    : 'bg-gray-100'
-                }`}
+                style={[
+                  styles.dayButton,
+                  selectedDay === index && styles.dayButtonActive
+                ]}
                 onPress={() => setSelectedDay(index)}
               >
                 <Text
-                  className={`font-medium ${
-                    selectedDay === index
-                      ? 'text-white'
-                      : 'text-gray-600'
-                  }`}
+                  style={[
+                    styles.dayText,
+                    selectedDay === index && styles.dayTextActive
+                  ]}
                 >
                   {day}
                 </Text>
@@ -146,18 +145,18 @@ export const MealPlannerScreen = () => {
           </ScrollView>
 
           {/* Meals */}
-          <View className="px-6 py-4">
+          <View style={styles.mealsContainer}>
             {meals.map((meal) => (
               <View
                 key={meal}
-                className="bg-gray-50 rounded-xl p-4 mb-4"
+                style={styles.mealCard}
               >
-                <View className="flex-row items-center justify-between mb-2">
-                  <Text className="text-lg font-semibold text-gray-900">
+                <View style={styles.mealHeader}>
+                  <Text style={styles.mealTitle}>
                     {meal}
                   </Text>
                   <TouchableOpacity
-                    className="w-8 h-8 bg-white rounded-full items-center justify-center"
+                    style={styles.mealAddButton}
                     onPress={() => onPressAddForDay(selectedDay)}
                   >
                     <Ionicons name="add" size={20} color="#4F46E5" />
@@ -165,16 +164,16 @@ export const MealPlannerScreen = () => {
                 </View>
 
                 {/* Planned meals for selected day */}
-                <View className="bg-white rounded-lg p-3">
+                <View style={styles.plannedMeals}>
                   {dayMeals[selectedDay] && dayMeals[selectedDay].length > 0 ? (
                     dayMeals[selectedDay].map((m) => (
-                      <View key={m.id} className="flex-row items-center py-2 border-b border-gray-100">
-                        <View className="w-2 h-2 rounded-full bg-indigo-600 mr-3" />
-                        <Text className="flex-1 text-gray-900">{m.name}</Text>
+                      <View key={m.id} style={styles.plannedMealItem}>
+                        <View style={styles.mealBullet} />
+                        <Text style={styles.plannedMealText}>{m.name}</Text>
                       </View>
                     ))
                   ) : (
-                    <Text className="text-gray-600 text-center">No meals planned</Text>
+                    <Text style={styles.noMealsText}>No meals planned</Text>
                   )}
                 </View>
               </View>
@@ -182,28 +181,28 @@ export const MealPlannerScreen = () => {
           </View>
 
           {/* Quick Actions */}
-          <View className="px-6 py-4">
-            <Text className="text-lg font-semibold text-gray-900 mb-4">
+          <View style={styles.quickActionsContainer}>
+            <Text style={styles.quickActionsTitle}>
               Quick Actions
             </Text>
-            <View className="flex-row space-x-4">
+            <View style={styles.quickActionsRow}>
               <TouchableOpacity
-                className="flex-1 bg-indigo-100 p-4 rounded-xl"
-                onPress={() => navigation.navigate('GroceryList')}
+                style={[styles.quickActionCard, styles.quickActionGrocery]}
+                onPress={() => navigation.navigate({ name: 'GroceryList', params: undefined })}
               >
                 <Ionicons name="cart" size={24} color="#4F46E5" />
-                <Text className="text-indigo-600 font-medium mt-2">
+                <Text style={styles.quickActionGroceryText}>
                   Generate Shopping List
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                className="flex-1 bg-green-100 p-4 rounded-xl"
+                style={[styles.quickActionCard, styles.quickActionSave]}
                 onPress={() => {
                   // TODO: Save meal plan
                 }}
               >
                 <Ionicons name="save" size={24} color="#10B981" />
-                <Text className="text-green-600 font-medium mt-2">
+                <Text style={styles.quickActionSaveText}>
                   Save Plan
                 </Text>
               </TouchableOpacity>
@@ -214,35 +213,35 @@ export const MealPlannerScreen = () => {
 
       {/* Meal Picker Modal */}
       <Modal visible={pickerVisible} animationType="slide" transparent onRequestClose={() => setPickerVisible(false)}>
-        <View className="flex-1 bg-black/30 justify-end">
-          <View className="bg-white rounded-t-2xl p-4" style={{ maxHeight: '60%' }}>
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-lg font-semibold">Select a meal</Text>
-              <TouchableOpacity onPress={() => setPickerVisible(false)} className="px-3 py-1">
-                <Text className="text-indigo-600">Close</Text>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select a meal</Text>
+              <TouchableOpacity onPress={() => setPickerVisible(false)} style={styles.modalCloseButton}>
+                <Text style={styles.modalCloseText}>Close</Text>
               </TouchableOpacity>
             </View>
             {loadingMeals ? (
-              <View className="py-6 items-center">
+              <View style={styles.modalLoading}>
                 <ActivityIndicator size="large" color="#4F46E5" />
               </View>
             ) : (
-              <ScrollView style={{ maxHeight: 400 }}>
+              <ScrollView style={styles.modalScroll}>
                 {availableMeals.map((m) => (
                   <TouchableOpacity
                     key={m.id}
-                    className="py-3 border-b border-gray-100"
+                    style={styles.modalMealItem}
                     onPress={async () => {
                       if (pendingDay == null) return;
                       await ensurePlanAndAdd(pendingDay, m.id);
                       setPickerVisible(false);
                     }}
                   >
-                    <Text className="text-gray-900">{m.name}</Text>
+                    <Text style={styles.modalMealText}>{m.name}</Text>
                   </TouchableOpacity>
                 ))}
                 {availableMeals.length === 0 && (
-                  <Text className="text-gray-600 py-6 text-center">No saved meals yet</Text>
+                  <Text style={styles.modalNoMeals}>No saved meals yet</Text>
                 )}
               </ScrollView>
             )}
@@ -253,3 +252,212 @@ export const MealPlannerScreen = () => {
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'white',
+  },
+  safeArea: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  addButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#EEF2FF',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  daySelector: {
+    paddingHorizontal: 24,
+  },
+  dayButton: {
+    marginRight: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  dayButtonActive: {
+    backgroundColor: '#4F46E5',
+  },
+  dayText: {
+    fontWeight: '500',
+    color: '#6B7280',
+  },
+  dayTextActive: {
+    color: 'white',
+  },
+  mealsContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  mealCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  mealHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  mealTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  mealAddButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  plannedMeals: {
+    backgroundColor: 'white',
+    borderRadius: 8,
+    padding: 12,
+  },
+  plannedMealItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  mealBullet: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#4F46E5',
+    marginRight: 12,
+  },
+  plannedMealText: {
+    flex: 1,
+    color: '#111827',
+  },
+  noMealsText: {
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  quickActionsContainer: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+  },
+  quickActionsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 16,
+  },
+  quickActionsRow: {
+    flexDirection: 'row',
+    gap: 16,
+  },
+  quickActionCard: {
+    flex: 1,
+    padding: 16,
+    borderRadius: 12,
+  },
+  quickActionGrocery: {
+    backgroundColor: '#EEF2FF',
+  },
+  quickActionSave: {
+    backgroundColor: '#D1FAE5',
+  },
+  quickActionGroceryText: {
+    color: '#4F46E5',
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  quickActionSaveText: {
+    color: '#059669',
+    fontWeight: '500',
+    marginTop: 8,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 16,
+    maxHeight: '60%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+  },
+  modalCloseButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  modalCloseText: {
+    color: '#4F46E5',
+  },
+  modalLoading: {
+    paddingVertical: 24,
+    alignItems: 'center',
+  },
+  modalScroll: {
+    maxHeight: 400,
+  },
+  modalMealItem: {
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  modalMealText: {
+    color: '#111827',
+  },
+  modalNoMeals: {
+    color: '#6B7280',
+    paddingVertical: 24,
+    textAlign: 'center',
+  },
+});
