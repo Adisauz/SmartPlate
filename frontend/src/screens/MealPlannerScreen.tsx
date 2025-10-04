@@ -41,8 +41,10 @@ export const MealPlannerScreen = () => {
   const [availableMeals, setAvailableMeals] = useState<Array<{ id: number; name: string }>>([]);
   const [pickerVisible, setPickerVisible] = useState(false);
   const [loadingMeals, setLoadingMeals] = useState(false);
-  const [dayMeals, setDayMeals] = useState<Record<number, Array<{ id: number; name: string }>>>({});
+  // Store meals by day and meal type: { 0: { 'Breakfast': [...], 'Lunch': [...] }, 1: {...}, ... }
+  const [dayMeals, setDayMeals] = useState<Record<number, Record<string, Array<{ id: number; name: string }>>>>({});
   const [pendingDay, setPendingDay] = useState<number | null>(null);
+  const [pendingMealType, setPendingMealType] = useState<string | null>(null);
 
   const fetchMeals = async () => {
     try {
@@ -63,7 +65,7 @@ export const MealPlannerScreen = () => {
     fetchMeals();
   }, []);
 
-  const ensurePlanAndAdd = async (day: number, mealId: number) => {
+  const ensurePlanAndAdd = async (day: number, mealType: string, mealId: number) => {
     if (planId == null) {
       const startDate = new Date();
       const iso = startDate.toISOString().slice(0, 10);
@@ -77,16 +79,25 @@ export const MealPlannerScreen = () => {
     }
 
     setDayMeals((prev) => {
-      const current = prev[day] ?? [];
+      const dayData = prev[day] ?? {};
+      const current = dayData[mealType] ?? [];
       const exists = current.some((m) => m.id === mealId);
       const meal = availableMeals.find((m) => m.id === mealId);
       if (!meal) return prev;
-      return { ...prev, [day]: exists ? current : [...current, meal] };
+      
+      return {
+        ...prev,
+        [day]: {
+          ...dayData,
+          [mealType]: exists ? current : [...current, meal]
+        }
+      };
     });
   };
 
-  const onPressAddForDay = (day: number) => {
+  const onPressAddForMealType = (day: number, mealType: string) => {
     setPendingDay(day);
+    setPendingMealType(mealType);
     setPickerVisible(true);
   };
 
@@ -146,38 +157,42 @@ export const MealPlannerScreen = () => {
 
           {/* Meals */}
           <View style={styles.mealsContainer}>
-            {meals.map((meal) => (
-              <View
-                key={meal}
-                style={styles.mealCard}
-              >
-                <View style={styles.mealHeader}>
-                  <Text style={styles.mealTitle}>
-                    {meal}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.mealAddButton}
-                    onPress={() => onPressAddForDay(selectedDay)}
-                  >
-                    <Ionicons name="add" size={20} color="#4F46E5" />
-                  </TouchableOpacity>
-                </View>
+            {meals.map((meal) => {
+              const mealsForType = dayMeals[selectedDay]?.[meal] ?? [];
+              
+              return (
+                <View
+                  key={meal}
+                  style={styles.mealCard}
+                >
+                  <View style={styles.mealHeader}>
+                    <Text style={styles.mealTitle}>
+                      {meal}
+                    </Text>
+                    <TouchableOpacity
+                      style={styles.mealAddButton}
+                      onPress={() => onPressAddForMealType(selectedDay, meal)}
+                    >
+                      <Ionicons name="add" size={20} color="#4F46E5" />
+                    </TouchableOpacity>
+                  </View>
 
-                {/* Planned meals for selected day */}
-                <View style={styles.plannedMeals}>
-                  {dayMeals[selectedDay] && dayMeals[selectedDay].length > 0 ? (
-                    dayMeals[selectedDay].map((m) => (
-                      <View key={m.id} style={styles.plannedMealItem}>
-                        <View style={styles.mealBullet} />
-                        <Text style={styles.plannedMealText}>{m.name}</Text>
-                      </View>
-                    ))
-                  ) : (
-                    <Text style={styles.noMealsText}>No meals planned</Text>
-                  )}
+                  {/* Planned meals for selected day and meal type */}
+                  <View style={styles.plannedMeals}>
+                    {mealsForType.length > 0 ? (
+                      mealsForType.map((m) => (
+                        <View key={m.id} style={styles.plannedMealItem}>
+                          <View style={styles.mealBullet} />
+                          <Text style={styles.plannedMealText}>{m.name}</Text>
+                        </View>
+                      ))
+                    ) : (
+                      <Text style={styles.noMealsText}>No meals planned</Text>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
+              );
+            })}
           </View>
 
           {/* Quick Actions */}
@@ -216,7 +231,9 @@ export const MealPlannerScreen = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select a meal</Text>
+              <Text style={styles.modalTitle}>
+                Add to {pendingMealType || 'Meal'}
+              </Text>
               <TouchableOpacity onPress={() => setPickerVisible(false)} style={styles.modalCloseButton}>
                 <Text style={styles.modalCloseText}>Close</Text>
               </TouchableOpacity>
@@ -232,8 +249,8 @@ export const MealPlannerScreen = () => {
                     key={m.id}
                     style={styles.modalMealItem}
                     onPress={async () => {
-                      if (pendingDay == null) return;
-                      await ensurePlanAndAdd(pendingDay, m.id);
+                      if (pendingDay == null || pendingMealType == null) return;
+                      await ensurePlanAndAdd(pendingDay, pendingMealType, m.id);
                       setPickerVisible(false);
                     }}
                   >
