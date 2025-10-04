@@ -15,6 +15,7 @@ import { RecipeDetailScreen } from '../screens/RecipeDetailScreen';
 import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { ResetPasswordScreen } from '../screens/ResetPasswordScreen';
 import { AIChefScreen } from '../screens/AIChefScreen';
+import { SavedMealsScreen } from '../screens/SavedMealsScreen';
 
 // Types
 export type RootStackParamList = {
@@ -29,6 +30,7 @@ export type RootStackParamList = {
   Profile: undefined;
   RecipeDetail: { recipe: any };
   AIChef: undefined;
+  SavedMeals: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -155,6 +157,14 @@ export const AppNavigator = () => {
       <Stack.Screen
         name="AIChef"
         component={AIChefScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="SavedMeals"
+        component={SavedMealsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',

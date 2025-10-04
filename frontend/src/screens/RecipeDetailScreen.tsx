@@ -68,10 +68,19 @@ export const RecipeDetailScreen = () => {
   const transformRecipe = (aiRecipe: any) => {
     if (!aiRecipe) return recipe;
     
+    // Convert image path to static URL
+    const getImageUrl = (imagePath: string) => {
+      if (!imagePath) return 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2';
+      if (imagePath.startsWith('http')) return imagePath;
+      // Extract filename from path like "uploaded_images/recipe_xxx.png"
+      const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
+      return `http://192.168.1.11:8000/static/${filename}`;
+    };
+    
     return {
       id: aiRecipe.id || '1',
       name: aiRecipe.name || 'Unknown Recipe',
-      image: aiRecipe.image ? `http://192.168.0.111:8000/${aiRecipe.image}` : 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2',
+      image: getImageUrl(aiRecipe.image),
       time: `${(aiRecipe.prep_time || 0) + (aiRecipe.cook_time || 0)} mins`,
       servings: 4, // Default servings
       difficulty: 'Medium', // Default difficulty
@@ -108,11 +117,6 @@ export const RecipeDetailScreen = () => {
     message: '',
     type: 'success',
   });
-  const [AIAnswer, setAIAnswer] = useState('');
-  const [question, setQuestion] = useState('');
-  const [isAsking, setIsAsking] = useState(false);
-  const slideUpAnimation = useRef(new Animated.Value(0)).current;
-  const answerOpacity = useRef(new Animated.Value(0)).current;
 
   const handleAddToMealPlan = () => {
     setToast({
@@ -163,64 +167,6 @@ export const RecipeDetailScreen = () => {
       setToast({ visible: true, message: 'Meal saved', type: 'success' });
     } catch (e) {
       setToast({ visible: true, message: 'Failed to save meal', type: 'error' });
-    }
-  };
-
-  const resetAnimation = () => {
-    slideUpAnimation.setValue(0);
-    answerOpacity.setValue(0);
-    setAIAnswer('');
-  };
-
-  const handleQuestionChange = (text: string) => {
-    setQuestion(text);
-    // Reset animation if user starts typing a new question after getting an answer
-    if (AIAnswer && text !== question) {
-      resetAnimation();
-    }
-  };
-
-  const askAI = async (question: string) => {
-    if (!question.trim()) return;
-    
-    setIsAsking(true);
-    
-    // Reset previous answer opacity if exists
-    if (AIAnswer) {
-      answerOpacity.setValue(0);
-    }
-    
-    // Animate textbox up
-    Animated.timing(slideUpAnimation, {
-      toValue: -50, // Move up by 50 pixels
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-
-    try {
-      // Include recipe context in the question
-      const recipeContext = `I'm looking at a recipe called "${displayRecipe.name}". The ingredients are: ${displayRecipe.ingredients.map((i: any) => i.name).join(', ')}. `;
-      const fullQuestion = recipeContext + question;
-      
-      const res = await api.post('/ask-ai/', { question: fullQuestion });
-      setAIAnswer(res.data.answer);
-      
-      // Fade in the answer
-      Animated.timing(answerOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
-    } catch (err) {
-      setAIAnswer('Error getting answer');
-      // Still show error with fade in
-      Animated.timing(answerOpacity, {
-        toValue: 1,
-        duration: 400,
-        useNativeDriver: true,
-      }).start();
-    } finally {
-      setIsAsking(false);
     }
   };
 
@@ -383,48 +329,6 @@ export const RecipeDetailScreen = () => {
             </View>
           </ScrollView>
         </SafeAreaView>
-
-        {/* AI Q&A Section */}
-        <View style={styles.aiSection}>
-          <Animated.View 
-            style={{
-              transform: [{ translateY: slideUpAnimation }],
-            }}
-          >
-            <Text style={styles.aiTitle}>Ask AI about this recipe:</Text>
-            <TextInput
-              placeholder="Type your question..."
-              value={question}
-              onChangeText={handleQuestionChange}
-              style={styles.aiInput}
-              editable={!isAsking}
-              multiline={true}
-              numberOfLines={2}
-            />
-            <TouchableOpacity
-              style={[styles.aiButton, isAsking && styles.aiButtonDisabled]}
-              onPress={() => askAI(question)}
-              disabled={isAsking}
-            >
-              <Text style={styles.aiButtonText}>
-                {isAsking ? 'Asking...' : 'Ask AI'}
-              </Text>
-            </TouchableOpacity>
-          </Animated.View>
-          
-          {AIAnswer ? (
-            <Animated.View 
-              style={[styles.aiAnswer, { opacity: answerOpacity }]}
-            >
-              <Text style={styles.aiAnswerTitle}>
-                AI Chef Says:
-              </Text>
-              <Text style={styles.aiAnswerText}>
-                {AIAnswer}
-              </Text>
-            </Animated.View>
-          ) : null}
-        </View>
 
         <Toast
           visible={toast.visible}
@@ -618,51 +522,5 @@ const styles = StyleSheet.create({
   nutritionValue: {
     color: '#111827',
     fontWeight: '500',
-  },
-  aiSection: {
-    padding: 16,
-    minHeight: 120,
-  },
-  aiTitle: {
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  aiInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 8,
-    padding: 8,
-    marginBottom: 8,
-    backgroundColor: '#fff',
-  },
-  aiButton: {
-    backgroundColor: '#4F46E5',
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  aiButtonDisabled: {
-    backgroundColor: '#9CA3AF',
-  },
-  aiButtonText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  aiAnswer: {
-    marginTop: 16,
-    backgroundColor: '#F3F4F6',
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#4F46E5',
-  },
-  aiAnswerTitle: {
-    fontWeight: 'bold',
-    marginBottom: 4,
-    color: '#4F46E5',
-  },
-  aiAnswerText: {
-    color: '#374151',
-    lineHeight: 20,
   },
 }); 

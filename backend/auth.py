@@ -43,16 +43,18 @@ async def register(user: UserRegister):
 @router.post("/login")
 async def login(user: UserLogin):
     async with aiosqlite.connect(DB_PATH) as db:
-        cursor = await db.execute("SELECT id, password_hash FROM users WHERE LOWER(username) = LOWER(?)", (user.username,))
+        cursor = await db.execute("SELECT id, password_hash, username, name FROM users WHERE LOWER(username) = LOWER(?)", (user.username,))
         row = await cursor.fetchone()
         if not row:
             raise HTTPException(status_code=401, detail="Invalid username")
         if not pwd_context.verify(user.password, row[1]):
             raise HTTPException(status_code=401, detail="Wrong password")
         user_id = row[0]
+        username = row[2]
+        name = row[3] or username  # Use name if available, otherwise username
         exp = datetime.utcnow() + timedelta(hours=12)
-        token = jwt.encode({"user_id": user_id, "username": user.username, "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
-    return {"access_token": token, "token_type": "bearer", "name": user.username}
+        token = jwt.encode({"user_id": user_id, "username": username, "exp": exp}, SECRET_KEY, algorithm=ALGORITHM)
+    return {"access_token": token, "token_type": "bearer", "username": username, "name": name}
 
 @router.post("/forgot-password")
 async def forgot_password(request: ForgotPassword):

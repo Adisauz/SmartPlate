@@ -42,7 +42,8 @@ export const LoginScreen = () => {
     try {
       const res = await api.post('/auth/login', { username: email, password });
       await AsyncStorage.setItem('token', res.data.access_token);
-      await AsyncStorage.setItem('name', res.data.name || '');
+      await AsyncStorage.setItem('username', res.data.username || '');
+      await AsyncStorage.setItem('name', res.data.name || res.data.username || '');
       navigation.replace('Home');
     } catch (err: any) {
       if (err.response && err.response.data && err.response.data.detail) {

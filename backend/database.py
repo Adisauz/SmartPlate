@@ -7,7 +7,10 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
-    name TEXT
+    name TEXT,
+    email TEXT,
+    height REAL,
+    weight REAL
 );
 '''
 
@@ -92,6 +95,21 @@ async def init_db():
                 ''')
                 await db.execute("INSERT INTO pantry_items (id, user_id, name) SELECT id, user_id, name FROM pantry_items_old")
                 await db.execute("DROP TABLE pantry_items_old")
+        except Exception:
+            pass
+        
+        # Migrate users table to add email, height, weight
+        try:
+            cursor = await db.execute("PRAGMA table_info(users)")
+            cols = await cursor.fetchall()
+            col_names = [col[1] for col in cols]
+            
+            if 'email' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN email TEXT")
+            if 'height' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN height REAL")
+            if 'weight' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN weight REAL")
         except Exception:
             pass
         

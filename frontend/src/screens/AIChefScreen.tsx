@@ -149,150 +149,130 @@ export const AIChefScreen = () => {
   };
 
 
-  const RecipeCard = ({ recipe }: { recipe: Recipe }) => (
-    <TouchableOpacity
-      style={styles.recipeCard}
-      onPress={() => handleRecipePress(recipe)}
-    >
-      <View style={styles.recipeImageContainer}>
-        {recipe.image ? (
-          <Image source={{ uri: `http://localhost:8000/${recipe.image}` }} style={styles.recipeImage} />
-        ) : (
-          <View style={styles.placeholderImage}>
-            <Ionicons name="restaurant" size={24} color="#9CA3AF" />
-          </View>
-        )}
-      </View>
-      <View style={styles.recipeInfo}>
-        <Text style={styles.recipeName} numberOfLines={2}>
-          {recipe.name}
-        </Text>
-        <View style={styles.nutritionRow}>
-          <View style={styles.nutritionItem}>
-            <Text style={styles.nutritionValue}>{recipe.nutrients.calories}</Text>
-            <Text style={styles.nutritionLabel}>cal</Text>
-          </View>
-          <View style={styles.nutritionItem}>
-            <Text style={styles.nutritionValue}>{recipe.nutrients.protein}g</Text>
-            <Text style={styles.nutritionLabel}>protein</Text>
-          </View>
-          <View style={styles.nutritionItem}>
-            <Text style={styles.nutritionValue}>{recipe.nutrients.carbs}g</Text>
-            <Text style={styles.nutritionLabel}>carbs</Text>
-          </View>
-          <View style={styles.nutritionItem}>
-            <Text style={styles.nutritionValue}>{recipe.nutrients.fat}g</Text>
-            <Text style={styles.nutritionLabel}>fat</Text>
-          </View>
-        </View>
-        <View style={styles.timeContainer}>
-          <Ionicons name="time-outline" size={14} color="#6B7280" />
-          <Text style={styles.timeText}>
-            {recipe.prep_time + recipe.cook_time} min
-          </Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+  const RecipeCard = ({ recipe }: { recipe: Recipe }) => {
+    // Convert image path to static URL
+    const getImageUrl = (imagePath: string) => {
+      if (!imagePath) return '';
+      // If it's already a full URL, return as is
+      if (imagePath.startsWith('http')) return imagePath;
+      // Extract filename from path like "uploaded_images/recipe_xxx.png"
+      const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
+      return `http://192.168.1.11:8000/static/${filename}`;
+    };
 
-  const RecipeModal = () => (
-    <Modal
-      visible={showRecipeModal}
-      animationType="slide"
-      presentationStyle="fullScreen"
-    >
-      <SafeAreaView style={styles.modalContainer}>
-        <View style={styles.modalHeader}>
-          <TouchableOpacity
-            onPress={() => setShowRecipeModal(false)}
-            style={styles.backButton}
-          >
-            <Ionicons name="arrow-back" size={24} color="#374151" />
-          </TouchableOpacity>
-          <Text style={styles.modalTitle}>Recipe Details</Text>
-          <TouchableOpacity
-            onPress={addToMealPlan}
-            style={styles.addButton}
-          >
-            <Ionicons name="add" size={24} color="#4F46E5" />
-          </TouchableOpacity>
+    return (
+      <TouchableOpacity
+        style={styles.recipeCard}
+        onPress={() => handleRecipePress(recipe)}
+      >
+        <View style={styles.recipeImageContainer}>
+          {recipe.image ? (
+            <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.recipeImage} />
+          ) : (
+            <View style={styles.placeholderImage}>
+              <Ionicons name="restaurant" size={24} color="#9CA3AF" />
+            </View>
+          )}
         </View>
-        
-        {selectedRecipe && (
-          <ScrollView style={styles.modalContent}>
-            <View style={styles.fullRecipeImageContainer}>
-              {selectedRecipe.image ? (
-                <Image 
-                  source={{ uri: `http://localhost:8000/${selectedRecipe.image}` }} 
-                  style={styles.fullRecipeImage} 
-                />
-              ) : (
-                <View style={styles.fullPlaceholderImage}>
-                  <Ionicons name="restaurant" size={48} color="#9CA3AF" />
-                </View>
-              )}
+        <View style={styles.recipeInfo}>
+          <Text style={styles.recipeName} numberOfLines={2}>
+            {recipe.name}
+          </Text>
+          <View style={styles.nutritionRow}>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.nutrients.calories}</Text>
+              <Text style={styles.nutritionLabel}>cal</Text>
             </View>
-            
-            <View style={styles.recipeDetails}>
-              <Text style={styles.fullRecipeName}>{selectedRecipe.name}</Text>
-              
-              <View style={styles.detailsRow}>
-                <View style={styles.detailItem}>
-                  <Ionicons name="time-outline" size={20} color="#6B7280" />
-                  <Text style={styles.detailText}>
-                    Prep: {selectedRecipe.prep_time} min
-                  </Text>
-                </View>
-                <View style={styles.detailItem}>
-                  <Ionicons name="flame-outline" size={20} color="#6B7280" />
-                  <Text style={styles.detailText}>
-                    Cook: {selectedRecipe.cook_time} min
-                  </Text>
-                </View>
-              </View>
-              
-              <View style={styles.nutritionSection}>
-                <Text style={styles.sectionTitle}>Nutrition (per serving)</Text>
-                <View style={styles.nutritionGrid}>
-                  <View style={styles.nutritionBox}>
-                    <Text style={styles.nutritionNumber}>{selectedRecipe.nutrients.calories}</Text>
-                    <Text style={styles.nutritionText}>Calories</Text>
-                  </View>
-                  <View style={styles.nutritionBox}>
-                    <Text style={styles.nutritionNumber}>{selectedRecipe.nutrients.protein}g</Text>
-                    <Text style={styles.nutritionText}>Protein</Text>
-                  </View>
-                  <View style={styles.nutritionBox}>
-                    <Text style={styles.nutritionNumber}>{selectedRecipe.nutrients.carbs}g</Text>
-                    <Text style={styles.nutritionText}>Carbs</Text>
-                  </View>
-                  <View style={styles.nutritionBox}>
-                    <Text style={styles.nutritionNumber}>{selectedRecipe.nutrients.fat}g</Text>
-                    <Text style={styles.nutritionText}>Fat</Text>
-                  </View>
-                </View>
-              </View>
-              
-              <View style={styles.ingredientsSection}>
-                <Text style={styles.sectionTitle}>Ingredients</Text>
-                {selectedRecipe.ingredients.map((ingredient, index) => (
-                  <View key={index} style={styles.ingredientItem}>
-                    <Text style={styles.ingredientBullet}>•</Text>
-                    <Text style={styles.ingredientText}>{ingredient}</Text>
-                  </View>
-                ))}
-              </View>
-              
-              <View style={styles.instructionsSection}>
-                <Text style={styles.sectionTitle}>Instructions</Text>
-                <Text style={styles.instructionsText}>{selectedRecipe.instructions}</Text>
-              </View>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.nutrients.protein}g</Text>
+              <Text style={styles.nutritionLabel}>protein</Text>
             </View>
-          </ScrollView>
-        )}
-      </SafeAreaView>
-    </Modal>
-  );
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.nutrients.carbs}g</Text>
+              <Text style={styles.nutritionLabel}>carbs</Text>
+            </View>
+            <View style={styles.nutritionItem}>
+              <Text style={styles.nutritionValue}>{recipe.nutrients.fat}g</Text>
+              <Text style={styles.nutritionLabel}>fat</Text>
+            </View>
+          </View>
+          <View style={styles.timeContainer}>
+            <Ionicons name="time-outline" size={14} color="#6B7280" />
+            <Text style={styles.timeText}>
+              {recipe.prep_time + recipe.cook_time} min
+            </Text>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // Helper function to render formatted text with markdown-style elements
+  const renderFormattedText = (text: string, isUser: boolean) => {
+    const lines = text.split('\n');
+    const textColor = isUser ? '#FFFFFF' : '#374151';
+    
+    return lines.map((line, index) => {
+      // Check for bullet points (- or *)
+      if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+        return (
+          <View key={index} style={{ flexDirection: 'row', marginBottom: 6 }}>
+            <Text style={{ color: textColor, fontSize: 16, marginRight: 8 }}>•</Text>
+            <Text style={{ color: textColor, fontSize: 16, lineHeight: 22, flex: 1 }}>
+              {line.trim().substring(2)}
+            </Text>
+          </View>
+        );
+      }
+      
+      // Check for numbered lists (1. 2. etc)
+      const numberedMatch = line.trim().match(/^(\d+)\.\s+(.+)/);
+      if (numberedMatch) {
+        return (
+          <View key={index} style={{ flexDirection: 'row', marginBottom: 6 }}>
+            <Text style={{ color: textColor, fontSize: 16, fontWeight: '600', marginRight: 8, minWidth: 24 }}>
+              {numberedMatch[1]}.
+            </Text>
+            <Text style={{ color: textColor, fontSize: 16, lineHeight: 22, flex: 1 }}>
+              {numberedMatch[2]}
+            </Text>
+          </View>
+        );
+      }
+      
+      // Check for bold text (**text**)
+      const boldMatch = line.match(/\*\*(.+?)\*\*/g);
+      if (boldMatch) {
+        const parts = line.split(/(\*\*.+?\*\*)/);
+        return (
+          <Text key={index} style={{ color: textColor, fontSize: 16, lineHeight: 22, marginBottom: line ? 6 : 0 }}>
+            {parts.map((part, partIndex) => {
+              if (part.startsWith('**') && part.endsWith('**')) {
+                return (
+                  <Text key={partIndex} style={{ fontWeight: 'bold' }}>
+                    {part.slice(2, -2)}
+                  </Text>
+                );
+              }
+              return part;
+            })}
+          </Text>
+        );
+      }
+      
+      // Regular text
+      if (line.trim()) {
+        return (
+          <Text key={index} style={{ color: textColor, fontSize: 16, lineHeight: 22, marginBottom: 6 }}>
+            {line}
+          </Text>
+        );
+      }
+      
+      // Empty line (spacing)
+      return <View key={index} style={{ height: 8 }} />;
+    });
+  };
 
   const renderMessage = (message: ChatMessage, index: number) => {
     const isUser = message.type === 'user';
@@ -319,22 +299,16 @@ export const AIChefScreen = () => {
           }}
         >
           {!isUser && (
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ fontSize: 16, marginRight: 4 }}>🍳</Text>
               <Text style={{ fontWeight: 'bold', color: '#4F46E5', fontSize: 12 }}>
                 AI Chef
               </Text>
             </View>
           )}
-          <Text
-            style={{
-              color: isUser ? '#FFFFFF' : '#374151',
-              fontSize: 16,
-              lineHeight: 22,
-            }}
-          >
-            {message.message}
-          </Text>
+          <View>
+            {renderFormattedText(message.message, isUser)}
+          </View>
         </View>
         
         {/* Render recipe cards if available */}

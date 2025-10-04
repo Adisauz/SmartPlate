@@ -14,6 +14,16 @@ class UserLogin(BaseModel):
 class UserOut(BaseModel):
     id: int
     username: str
+    name: Optional[str] = None
+    email: Optional[str] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
+
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+    height: Optional[float] = None
+    weight: Optional[float] = None
 
 class Nutrients(BaseModel):
     calories: int

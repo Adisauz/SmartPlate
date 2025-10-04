@@ -277,6 +277,17 @@ export const HomeScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
+                onPress={() => navigation.navigate({ name: 'SavedMeals', params: undefined })}
+                style={[styles.quickActionCard, styles.quickActionPink]}
+              >
+                <View style={[styles.quickActionIcon, styles.quickActionIconPink]}>
+                  <Ionicons name="bookmark-outline" size={24} color="#DB2777" />
+                </View>
+                <Text style={styles.quickActionTitle}>Saved Meals</Text>
+                <Text style={styles.quickActionSubtitle}>View your recipes</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 onPress={() => navigation.navigate({ name: 'Profile', params: undefined })}
                 style={[styles.quickActionCard, styles.quickActionPurple]}
               >
@@ -466,6 +477,9 @@ const styles = StyleSheet.create({
   quickActionBlue: {
     backgroundColor: '#EFF6FF',
   },
+  quickActionPink: {
+    backgroundColor: '#FDF2F8',
+  },
   quickActionPurple: {
     backgroundColor: '#FAF5FF',
   },
@@ -488,6 +502,9 @@ const styles = StyleSheet.create({
   },
   quickActionIconBlue: {
     backgroundColor: '#DBEAFE',
+  },
+  quickActionIconPink: {
+    backgroundColor: '#FCE7F3',
   },
   quickActionIconPurple: {
     backgroundColor: '#F3E8FF',
