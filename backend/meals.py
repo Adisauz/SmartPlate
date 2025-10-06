@@ -23,6 +23,33 @@ def get_current_user(token: Optional[HTTPAuthorizationCredentials] = Depends(sec
 @router.post("/", response_model=MealOut)
 async def create_meal(meal: MealCreate, user_id: int = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
+        # Check if meal with same name already exists
+        cursor = await db.execute(
+            "SELECT id, name, ingredients, instructions, calories, protein, carbs, fat, prep_time, cook_time, image FROM meals WHERE name = ?",
+            (meal.name,)
+        )
+        existing = await cursor.fetchone()
+        
+        if existing:
+            # Return existing meal instead of creating duplicate
+            ingredients = json.loads(existing[2]) if existing[2] else []
+            nutrients = Nutrients(
+                calories=existing[4] or 0,
+                protein=existing[5] or 0,
+                carbs=existing[6] or 0,
+                fat=existing[7] or 0
+            )
+            return MealOut(
+                id=existing[0],
+                name=existing[1],
+                ingredients=ingredients,
+                instructions=existing[3] or "",
+                nutrients=nutrients,
+                prep_time=existing[8] or 0,
+                cook_time=existing[9] or 0,
+                image=existing[10]
+            )
+        
         # Convert ingredients list to JSON string for storage
         ingredients_json = json.dumps(meal.ingredients)
         

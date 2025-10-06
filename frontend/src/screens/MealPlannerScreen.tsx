@@ -231,24 +231,43 @@ export const MealPlannerScreen = () => {
                   {/* Planned meals for selected day and meal type */}
                   <View style={styles.plannedMeals}>
                     {mealsForType.length > 0 ? (
-                      mealsForType.map((m) => (
-                        <TouchableOpacity 
-                          key={m.id} 
+                      mealsForType.map((m, index) => (
+                        <View 
+                          key={`${m.id}-${index}`} 
                           style={styles.plannedMealItem}
-                          onPress={async () => {
-                            try {
-                              // Fetch full meal details
-                              const res = await api.get(`/meals/${m.id}`);
-                              navigation.navigate('RecipeDetail', { recipe: res.data });
-                            } catch (err) {
-                              console.error('Error loading meal:', err);
-                            }
-                          }}
                         >
-                          <View style={styles.mealBullet} />
-                          <Text style={styles.plannedMealText}>{m.name}</Text>
-                          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginLeft: 'auto' }} />
-                        </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={styles.plannedMealTouchable}
+                            onPress={async () => {
+                              try {
+                                // Fetch full meal details
+                                const res = await api.get(`/meals/${m.id}`);
+                                navigation.navigate('RecipeDetail', { recipe: res.data });
+                              } catch (err) {
+                                console.error('Error loading meal:', err);
+                              }
+                            }}
+                          >
+                            <View style={styles.mealBullet} />
+                            <Text style={styles.plannedMealText}>{m.name}</Text>
+                            <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginLeft: 8 }} />
+                          </TouchableOpacity>
+                          <TouchableOpacity 
+                            style={styles.removeMealButton}
+                            onPress={async () => {
+                              try {
+                                // Remove meal from plan
+                                await api.delete(`/plans/${planId}/meals/${m.id}?day=${selectedDay}&meal_type=${meal}`);
+                                // Reload the meal plan
+                                await loadMealPlan();
+                              } catch (err) {
+                                console.error('Error removing meal:', err);
+                              }
+                            }}
+                          >
+                            <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                          </TouchableOpacity>
+                        </View>
                       ))
                     ) : (
                       <Text style={styles.noMealsText}>No meals planned</Text>
@@ -460,11 +479,17 @@ const styles = StyleSheet.create({
   plannedMealItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingVertical: 12,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
     borderRadius: 8,
+  },
+  plannedMealTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   mealBullet: {
     width: 8,
@@ -476,6 +501,10 @@ const styles = StyleSheet.create({
   plannedMealText: {
     flex: 1,
     color: '#111827',
+  },
+  removeMealButton: {
+    padding: 8,
+    marginLeft: 8,
   },
   noMealsText: {
     color: '#6B7280',

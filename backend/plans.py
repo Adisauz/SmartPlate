@@ -48,6 +48,20 @@ async def list_plans(user_id: int = Depends(get_current_user)):
             result.append(MealPlanOut(id=plan_id, user_id=user_id, start_date=date.fromisoformat(start_date_str), items=items))
     return result
 
+@router.get("/{plan_id}", response_model=MealPlanOut)
+async def get_plan(plan_id: int, user_id: int = Depends(get_current_user)):
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute("SELECT id, user_id, start_date FROM meal_plans WHERE id = ? AND user_id = ?", (plan_id, user_id))
+        plan = await cursor.fetchone()
+        if not plan:
+            raise HTTPException(status_code=404, detail="Meal plan not found")
+        
+        plan_id, owner_id, start_date_str = plan
+        cursor2 = await db.execute("SELECT day, meal_id, meal_type FROM meal_plan_items WHERE meal_plan_id = ?", (plan_id,))
+        items = [MealPlanItemBase(day=row[0], meal_id=row[1], meal_type=row[2] or 'Breakfast') for row in await cursor2.fetchall()]
+        
+        return MealPlanOut(id=plan_id, user_id=owner_id, start_date=date.fromisoformat(start_date_str), items=items)
+
 @router.delete("/{plan_id}")
 async def delete_plan(plan_id: int, user_id: int = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
@@ -70,4 +84,36 @@ async def add_meal_to_plan(plan_id: int, item: MealPlanItemBase, user_id: int = 
             (plan_id, item.day, item.meal_id, item.meal_type or 'Breakfast')
         )
         await db.commit()
-    return {"message": "Meal added to plan", "plan_id": plan_id, "day": item.day, "meal_id": item.meal_id} 
+    return {"message": "Meal added to plan", "plan_id": plan_id, "day": item.day, "meal_id": item.meal_id}
+
+@router.delete("/{plan_id}/meals/{meal_id}")
+async def remove_meal_from_plan(
+    plan_id: int, 
+    meal_id: int, 
+    day: int, 
+    meal_type: str, 
+    user_id: int = Depends(get_current_user)
+):
+    """Remove a specific meal from a meal plan for a specific day and meal type"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Verify plan belongs to user
+        cursor = await db.execute("SELECT user_id FROM meal_plans WHERE id = ?", (plan_id,))
+        row = await cursor.fetchone()
+        if not row or row[0] != user_id:
+            raise HTTPException(status_code=404, detail="Meal plan not found")
+        
+        # Find the first matching item's rowid
+        cursor = await db.execute(
+            """SELECT rowid FROM meal_plan_items 
+               WHERE meal_plan_id = ? AND meal_id = ? AND day = ? AND meal_type = ?
+               LIMIT 1""",
+            (plan_id, meal_id, day, meal_type)
+        )
+        row = await cursor.fetchone()
+        
+        if row:
+            # Delete by rowid to remove only one instance
+            await db.execute("DELETE FROM meal_plan_items WHERE rowid = ?", (row[0],))
+            await db.commit()
+    
+    return {"message": "Meal removed from plan"} 
