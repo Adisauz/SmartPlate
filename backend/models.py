@@ -18,12 +18,20 @@ class UserOut(BaseModel):
     email: Optional[str] = None
     height: Optional[float] = None
     weight: Optional[float] = None
+    daily_calorie_goal: Optional[int] = None
+    daily_protein_goal: Optional[int] = None
+    daily_carbs_goal: Optional[int] = None
+    daily_fat_goal: Optional[int] = None
 
 class UserProfileUpdate(BaseModel):
     name: Optional[str] = None
     email: Optional[str] = None
     height: Optional[float] = None
     weight: Optional[float] = None
+    daily_calorie_goal: Optional[int] = None
+    daily_protein_goal: Optional[int] = None
+    daily_carbs_goal: Optional[int] = None
+    daily_fat_goal: Optional[int] = None
 
 class Nutrients(BaseModel):
     calories: int

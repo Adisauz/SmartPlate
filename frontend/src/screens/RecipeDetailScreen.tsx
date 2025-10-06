@@ -94,9 +94,17 @@ export const RecipeDetailScreen = () => {
           }))
         : [],
       instructions: aiRecipe.instructions 
-        ? aiRecipe.instructions.split('\n')
-            .filter((step: string) => step.trim())
-            .map((step: string) => step.replace(/^\d+\.\s*/, '').replace(/^[-*]\s*/, '').trim())
+        ? aiRecipe.instructions
+            .split(/\n+/)  // Split by one or more newlines
+            .map((step: string) => step.trim())
+            .filter((step: string) => step.length > 0)
+            .map((step: string) => {
+              // Remove markdown numbering (1. 2. etc) and bullet points (- *)
+              return step
+                .replace(/^\d+\.\s*/, '')
+                .replace(/^[-*]\s*/, '')
+                .trim();
+            })
         : [],
       nutrition: {
         calories: aiRecipe.nutrients?.calories || 0,
@@ -556,9 +564,11 @@ const styles = StyleSheet.create({
   instructionItem: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    paddingVertical: 12,
+    marginBottom: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
+    padding: 12,
   },
   instructionNumber: {
     width: 24,
@@ -577,6 +587,8 @@ const styles = StyleSheet.create({
   instructionText: {
     flex: 1,
     color: '#111827',
+    fontSize: 15,
+    lineHeight: 22,
   },
   nutritionCard: {
     backgroundColor: '#F9FAFB',

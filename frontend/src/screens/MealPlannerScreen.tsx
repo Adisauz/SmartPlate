@@ -61,8 +61,47 @@ export const MealPlannerScreen = () => {
     }
   };
 
+  const loadMealPlan = async () => {
+    try {
+      const res = await api.get('/plans/');
+      if (res.data && res.data.length > 0) {
+        const plan = res.data[0]; // Get the first/active plan
+        setPlanId(plan.id);
+        
+        // Load all meals for this plan
+        const planRes = await api.get(`/plans/${plan.id}`);
+        if (planRes.data && planRes.data.items) {
+          // Group meals by day and meal type
+          const groupedMeals: Record<number, Record<string, Array<{ id: number; name: string }>>> = {};
+          
+          for (const item of planRes.data.items) {
+            const mealRes = await api.get(`/meals/${item.meal_id}`);
+            const meal = { id: mealRes.data.id, name: mealRes.data.name };
+            
+            if (!groupedMeals[item.day]) {
+              groupedMeals[item.day] = {};
+            }
+            
+            // For now, add to all meal types since we don't store meal type in backend
+            // TODO: Update backend to store meal_type
+            const mealType = 'Breakfast'; // Default for now
+            if (!groupedMeals[item.day][mealType]) {
+              groupedMeals[item.day][mealType] = [];
+            }
+            groupedMeals[item.day][mealType].push(meal);
+          }
+          
+          setDayMeals(groupedMeals);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading meal plan:', e);
+    }
+  };
+
   useEffect(() => {
     fetchMeals();
+    loadMealPlan();
   }, []);
 
   const ensurePlanAndAdd = async (day: number, mealType: string, mealId: number) => {
@@ -253,43 +292,50 @@ export const MealPlannerScreen = () => {
       </SafeAreaView>
 
       {/* Meal Picker Modal */}
-      <Modal visible={pickerVisible} animationType="slide" transparent onRequestClose={() => setPickerVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>
-                Add to {pendingMealType || 'Meal'}
-              </Text>
-              <TouchableOpacity onPress={() => setPickerVisible(false)} style={styles.modalCloseButton}>
-                <Text style={styles.modalCloseText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-            {loadingMeals ? (
-              <View style={styles.modalLoading}>
-                <ActivityIndicator size="large" color="#4F46E5" />
+      <Modal visible={pickerVisible} animationType="fade" transparent onRequestClose={() => setPickerVisible(false)}>
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setPickerVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>
+                  Add to {pendingMealType || 'Meal'}
+                </Text>
+                <TouchableOpacity onPress={() => setPickerVisible(false)} style={styles.modalCloseButton}>
+                  <Ionicons name="close-circle" size={28} color="#6B7280" />
+                </TouchableOpacity>
               </View>
-            ) : (
-              <ScrollView style={styles.modalScroll}>
-                {availableMeals.map((m) => (
-                  <TouchableOpacity
-                    key={m.id}
-                    style={styles.modalMealItem}
-                    onPress={async () => {
-                      if (pendingDay == null || pendingMealType == null) return;
-                      await ensurePlanAndAdd(pendingDay, pendingMealType, m.id);
-                      setPickerVisible(false);
-                    }}
-                  >
-                    <Text style={styles.modalMealText}>{m.name}</Text>
-                  </TouchableOpacity>
-                ))}
-                {availableMeals.length === 0 && (
-                  <Text style={styles.modalNoMeals}>No saved meals yet</Text>
-                )}
-              </ScrollView>
-            )}
-          </View>
-        </View>
+              {loadingMeals ? (
+                <View style={styles.modalLoading}>
+                  <ActivityIndicator size="large" color="#4F46E5" />
+                </View>
+              ) : (
+                <ScrollView style={styles.modalScroll}>
+                  {availableMeals.map((m) => (
+                    <TouchableOpacity
+                      key={m.id}
+                      style={styles.modalMealItem}
+                      onPress={async () => {
+                        if (pendingDay == null || pendingMealType == null) return;
+                        await ensurePlanAndAdd(pendingDay, pendingMealType, m.id);
+                        setPickerVisible(false);
+                      }}
+                    >
+                      <Text style={styles.modalMealText}>{m.name}</Text>
+                      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+                    </TouchableOpacity>
+                  ))}
+                  {availableMeals.length === 0 && (
+                    <Text style={styles.modalNoMeals}>No saved meals yet</Text>
+                  )}
+                </ScrollView>
+              )}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
     </View>
@@ -473,51 +519,70 @@ const styles = StyleSheet.create({
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
   },
   modalContent: {
     backgroundColor: 'white',
-    borderTopLeftRadius: 16,
-    borderTopRightRadius: 16,
-    padding: 16,
-    maxHeight: '60%',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    maxHeight: '70%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   modalHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
   },
   modalCloseButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 4,
+    padding: 4,
   },
   modalCloseText: {
     color: '#4F46E5',
   },
   modalLoading: {
-    paddingVertical: 24,
+    paddingVertical: 40,
     alignItems: 'center',
   },
   modalScroll: {
     maxHeight: 400,
   },
   modalMealItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 8,
+    backgroundColor: '#F9FAFB',
   },
   modalMealText: {
     color: '#111827',
+    fontSize: 16,
+    flex: 1,
   },
   modalNoMeals: {
     color: '#6B7280',
-    paddingVertical: 24,
+    paddingVertical: 40,
     textAlign: 'center',
+    fontSize: 16,
   },
 });

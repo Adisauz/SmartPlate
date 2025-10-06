@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS meal_plan_items (
     meal_plan_id INTEGER NOT NULL,
     day INTEGER NOT NULL,
     meal_id INTEGER NOT NULL,
+    meal_type TEXT DEFAULT 'Breakfast',
     FOREIGN KEY(meal_plan_id) REFERENCES meal_plans(id),
     FOREIGN KEY(meal_id) REFERENCES meals(id)
 );
@@ -108,7 +109,7 @@ async def init_db():
         except Exception:
             pass
         
-        # Migrate users table to add name, email, height, weight
+        # Migrate users table to add name, email, height, weight, and nutrition goals
         try:
             cursor = await db.execute("PRAGMA table_info(users)")
             cols = await cursor.fetchall()
@@ -122,6 +123,14 @@ async def init_db():
                 await db.execute("ALTER TABLE users ADD COLUMN height REAL")
             if 'weight' not in col_names:
                 await db.execute("ALTER TABLE users ADD COLUMN weight REAL")
+            if 'daily_calorie_goal' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN daily_calorie_goal INTEGER DEFAULT 2000")
+            if 'daily_protein_goal' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN daily_protein_goal INTEGER DEFAULT 50")
+            if 'daily_carbs_goal' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN daily_carbs_goal INTEGER DEFAULT 250")
+            if 'daily_fat_goal' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN daily_fat_goal INTEGER DEFAULT 70")
         except Exception:
             pass
         

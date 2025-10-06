@@ -4,6 +4,8 @@ from jose import jwt, JWTError
 import aiosqlite
 from database import DB_PATH
 from models import UserOut, UserProfileUpdate
+from datetime import date
+from typing import Dict
 
 SECRET_KEY = "supersecretkey"
 ALGORITHM = "HS256"
@@ -23,7 +25,9 @@ async def get_profile(user_id: int = Depends(get_current_user)):
     """Get the current user's profile information"""
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
-            "SELECT id, username, name, email, height, weight FROM users WHERE id = ?",
+            """SELECT id, username, name, email, height, weight, 
+               daily_calorie_goal, daily_protein_goal, daily_carbs_goal, daily_fat_goal 
+               FROM users WHERE id = ?""",
             (user_id,)
         )
         row = await cursor.fetchone()
@@ -37,7 +41,11 @@ async def get_profile(user_id: int = Depends(get_current_user)):
             name=row[2],
             email=row[3],
             height=row[4],
-            weight=row[5]
+            weight=row[5],
+            daily_calorie_goal=row[6],
+            daily_protein_goal=row[7],
+            daily_carbs_goal=row[8],
+            daily_fat_goal=row[9]
         )
 
 @router.put("/", response_model=UserOut)
@@ -67,6 +75,22 @@ async def update_profile(
             update_fields.append("weight = ?")
             values.append(profile.weight)
         
+        if profile.daily_calorie_goal is not None:
+            update_fields.append("daily_calorie_goal = ?")
+            values.append(profile.daily_calorie_goal)
+        
+        if profile.daily_protein_goal is not None:
+            update_fields.append("daily_protein_goal = ?")
+            values.append(profile.daily_protein_goal)
+        
+        if profile.daily_carbs_goal is not None:
+            update_fields.append("daily_carbs_goal = ?")
+            values.append(profile.daily_carbs_goal)
+        
+        if profile.daily_fat_goal is not None:
+            update_fields.append("daily_fat_goal = ?")
+            values.append(profile.daily_fat_goal)
+        
         if not update_fields:
             raise HTTPException(status_code=400, detail="No fields to update")
         
@@ -79,7 +103,9 @@ async def update_profile(
         
         # Fetch updated profile
         cursor = await db.execute(
-            "SELECT id, username, name, email, height, weight FROM users WHERE id = ?",
+            """SELECT id, username, name, email, height, weight,
+               daily_calorie_goal, daily_protein_goal, daily_carbs_goal, daily_fat_goal
+               FROM users WHERE id = ?""",
             (user_id,)
         )
         row = await cursor.fetchone()
@@ -90,6 +116,40 @@ async def update_profile(
             name=row[2],
             email=row[3],
             height=row[4],
-            weight=row[5]
+            weight=row[5],
+            daily_calorie_goal=row[6],
+            daily_protein_goal=row[7],
+            daily_carbs_goal=row[8],
+            daily_fat_goal=row[9]
         )
 
+@router.get("/nutrition/today", response_model=Dict)
+async def get_today_nutrition(user_id: int = Depends(get_current_user)):
+    """Get today's nutrition intake from meal plan"""
+    today = date.today()
+    weekday = today.weekday()  # 0=Monday, 6=Sunday
+    
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Get today's meals from the meal plan
+        cursor = await db.execute("""
+            SELECT m.calories, m.protein, m.carbs, m.fat
+            FROM meal_plan_items mpi
+            JOIN meal_plans mp ON mpi.meal_plan_id = mp.id
+            JOIN meals m ON mpi.meal_id = m.id
+            WHERE mp.user_id = ? AND mpi.day = ?
+        """, (user_id, weekday))
+        
+        meals = await cursor.fetchall()
+        
+        # Calculate totals
+        total_calories = sum(meal[0] or 0 for meal in meals)
+        total_protein = sum(meal[1] or 0 for meal in meals)
+        total_carbs = sum(meal[2] or 0 for meal in meals)
+        total_fat = sum(meal[3] or 0 for meal in meals)
+        
+        return {
+            "calories": total_calories,
+            "protein": total_protein,
+            "carbs": total_carbs,
+            "fat": total_fat
+        }
