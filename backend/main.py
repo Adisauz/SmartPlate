@@ -9,7 +9,7 @@ from grocery import router as grocery_router
 from ai import router as ai_router
 from image_upload import router as upload_router
 from yolo_detection import router as yolo_router
-from profile import router as profile_router
+from user_profile import router as profile_router
 from database import init_db
 
 app = FastAPI()

@@ -1,29 +1,42 @@
 import os
-import tempfile
-from typing import List, Dict
+import io
+from typing import Dict, List
+
 from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from ultralytics import YOLO
 from PIL import Image
-import io
+import logging
+
+# Optional HEIF/HEIC support
 try:
     import pillow_heif  # type: ignore[import-not-found]
     pillow_heif.register_heif_opener()
-except Exception:
-    # If not available, PIL will still handle common formats (JPEG/PNG)
-    pass
+except ImportError:
+    pass  # continue without HEIF
+
+# Import authentication config
 from auth import SECRET_KEY, ALGORITHM
 
+# Logger for debugging
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+os.environ['YOLO_PROFILING'] = '0'
+# FastAPI router
 router = APIRouter(prefix="/detect", tags=["detection"])
 security = HTTPBearer(auto_error=False)
 
-# Load YOLO model (local YOLOv11 nano)
-model = YOLO('yolo11n.pt')
+# Load YOLO model (downloads yolov8n.pt if not present)
+try:
+    model = YOLO("yolov8n.pt")
+    logger.info("YOLOv8n model loaded successfully")
+except Exception as e:
+    logger.error(f"Failed to load YOLO model: {e}")
+    raise RuntimeError("YOLO model could not be loaded")
 
-# Food items mapping - YOLO class names to common food names
-# Includes an expanded set of fruits and vegetables + some common food classes
-FOOD_ITEMS_MAP = {
+# Food items mapping
+FOOD_ITEMS_MAP: Dict[str, str] = {
     # Fruits
     'apple': 'Apple',
     'banana': 'Banana',
@@ -135,7 +148,7 @@ FOOD_ITEMS_MAP = {
     'oregano': 'Oregano',
     'bay leaf': 'Bay Leaf',
 
-    # Common COCO food/utensil classes (kept for completeness)
+    # COCO food/utensil classes
     'sandwich': 'Sandwich',
     'pizza': 'Pizza',
     'hot dog': 'Hot Dog',
@@ -149,79 +162,86 @@ FOOD_ITEMS_MAP = {
     'fork': 'Fork',
 }
 
+
 def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)) -> int:
+    """Validate JWT token and return user_id"""
     if token is None:
         raise HTTPException(status_code=401, detail="Authentication required")
+
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        return int(payload.get("user_id"))
-    except JWTError:
+        user_id = payload.get("user_id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token: user_id missing")
+        return int(user_id)
+    except (JWTError, ValueError):
         raise HTTPException(status_code=401, detail="Invalid token")
+
 
 @router.post("/food-items")
 async def detect_food_items(
     file: UploadFile = File(...),
     user_id: int = Depends(get_current_user)
 ):
-    """
-    Detect food items in an uploaded image using YOLO
-    """
+    """Detect food items in an uploaded image using YOLO"""
     try:
-        # Validate file type (be tolerant if content_type is missing or incorrect)
-        if file.content_type and not file.content_type.startswith('image/'):
-            raise HTTPException(status_code=400, detail="File must be an image")
+        # Validate file type
+        if file.content_type and not file.content_type.startswith("image/"):
+            return {"success": False, "detected_items": [], "total_items": 0, "error": "File must be an image"}
 
-        # Read image data into memory and open with PIL to avoid temp file IO issues
+        # Read and open image
         image_data = await file.read()
         try:
-            image = Image.open(io.BytesIO(image_data)).convert('RGB')
+            image = Image.open(io.BytesIO(image_data)).convert("RGB")
         except Exception as pil_err:
-            raise HTTPException(status_code=400, detail=f"Invalid image file: {pil_err}")
+            return {"success": False, "detected_items": [], "total_items": 0, "error": f"Invalid image file: {pil_err}"}
 
-        # Run YOLO prediction directly on the PIL image
-        results = model.predict(source=image, save=False, verbose=False)
+        # Run YOLO
+        try:
+            results = model.predict(source=image, save=False, verbose=False, stream=False)
+        except Exception as yolo_err:
+            logger.error(f"YOLO inference failed: {yolo_err}")
+            return {"success": False, "detected_items": [], "total_items": 0, "error": f"YOLO inference failed: {yolo_err}"}
 
-        detected_items = []
+        detected_items: List[Dict] = []
 
-        # Process results
+        # Process detections
         for result in results:
             if result.boxes is not None:
                 boxes = result.boxes
                 for i in range(len(boxes)):
-                    class_id = int(boxes.cls[i])
-                    class_name = model.names[class_id]
-                    confidence = float(boxes.conf[i])
+                    try:
+                        class_id = int(boxes.cls[i].item())
+                        confidence = float(boxes.conf[i].item())
+                        class_name = model.names[class_id]
 
-                    if confidence > 0.5 and class_name.lower() in FOOD_ITEMS_MAP:
-                        food_name = FOOD_ITEMS_MAP[class_name.lower()]
-                        if not any(item['name'] == food_name for item in detected_items):
-                            detected_items.append({
-                                'name': food_name,
-                                'confidence': round(confidence * 100, 1),
-                                'yolo_class': class_name
-                            })
+                        if confidence > 0.5:
+                            food_name = FOOD_ITEMS_MAP.get(class_name.lower(), class_name)
+                            if not any(item["name"] == food_name for item in detected_items):
+                                detected_items.append({
+                                    "name": food_name,
+                                    "confidence": round(confidence * 100, 1),
+                                    "yolo_class": class_name
+                                })
+                    except Exception as parse_err:
+                        logger.warning(f"Skipping detection due to parse error: {parse_err}")
+                        continue
 
-        detected_items.sort(key=lambda x: x['confidence'], reverse=True)
+        detected_items.sort(key=lambda x: x["confidence"], reverse=True)
 
         return {
-            'success': True,
-            'detected_items': detected_items,
-            'total_items': len(detected_items),
-            'message': f'Detected {len(detected_items)} food items' if detected_items else 'No food items detected'
+            "success": True,
+            "detected_items": detected_items,
+            "total_items": len(detected_items),
+            "message": f"Detected {len(detected_items)} food items" if detected_items else "No food items detected"
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Detection failed: {str(e)}")
+        logger.exception(f"Unexpected server error: {e}")
+        return {"success": False, "detected_items": [], "total_items": 0, "error": f"Unexpected server error: {str(e)}"}
+
 
 @router.get("/supported-items")
 async def get_supported_items():
-    """
-    Get list of food items that can be detected
-    """
-    return {
-        'supported_items': list(FOOD_ITEMS_MAP.values()),
-        'total_count': len(FOOD_ITEMS_MAP)
-    }
-
+    """Get list of food items that can be detected"""
+    return {"supported_items": list(FOOD_ITEMS_MAP.values()), "total_count": len(FOOD_ITEMS_MAP)}
