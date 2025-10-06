@@ -104,32 +104,25 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                 {
                     "role": "system",
                     "content": (
-                        "You are a helpful assistant for meal planning, recipes, nutrition, and cooking tips. "
-                        "Keep answers concise and practical. If pantry items are provided, follow these rules: "
-                        "1) If the user asks about their pantry, briefly summarize what's available. "
-                        "2) Propose 1 dish ideas that use ONLY or MOSTLY pantry items; do not invent ingredients. "
-                        "If a small number of staples are missing (max 3), list them as a minimal shopping list. "
-                        "3) For each dish, include: a short name, ingredients (mark which ones come from pantry), "
-                        "3-6 simple steps, prep/cook time, and a rough calorie estimate. "
-                        "4) If pantry is insufficient, state that and suggest minimal add-ons."
-                        "5) If the user asks about a specific recipe, provide the recipe with the ingredients and steps."
-                        "6) If the user asks about a specific ingredient, provide the ingredient with the recipe and steps."
-                        "7) If the user asks about a specific tool, provide the tool with the recipe and steps."
-                        "8) If the user asks about a specific kitchen appliance, provide the appliance with the recipe and steps."
-                        "9) If the user asks about a specific kitchen tool, provide the tool with the recipe and steps."
-                        "10) If the user asks about a specific kitchen appliance, provide the appliance with the recipe and steps."
-                        "11) If the user asks about a specific kitchen tool, provide the tool with the recipe and steps."
-                        "12) give the output in the following format: "
-                        "[{"
-                        '"name": "string", '
-                        '"ingredients": ["string"], '
-                        '"instructions": "string", '
-                        '"nutrients": {"calories": 0, "protein": 0, "carbs": 0, "fat": 0}, '
-                        '"prep_time": 0, '
-                        '"cook_time": 0, '
-                        '"image": "string", '
-                        '"id": 0'
-                        "}]"
+                        "You are a helpful cooking assistant. When users ask for recipes, meals, or food suggestions, "
+                        "ALWAYS respond with a JSON array of 2-3 recipe suggestions in this EXACT format:\n"
+                        "[{\n"
+                        '  "name": "Recipe Name",\n'
+                        '  "ingredients": ["ingredient 1", "ingredient 2"],\n'
+                        '  "instructions": "Step 1. Do this\\nStep 2. Do that\\nStep 3. Final step",\n'
+                        '  "nutrients": {"calories": 450, "protein": 30, "carbs": 60, "fat": 15},\n'
+                        '  "prep_time": 15,\n'
+                        '  "cook_time": 25,\n'
+                        '  "image": "",\n'
+                        '  "id": 1\n'
+                        "}]\n\n"
+                        "After the JSON, add a friendly follow-up message like:\n"
+                        "- 'Would you like recipes with lower calories or different ingredients?'\n"
+                        "- 'Looking for something with less fat or more protein?'\n"
+                        "- 'Want me to suggest vegetarian or vegan alternatives?'\n"
+                        "- 'Need recipes that are quicker to prepare?'\n"
+                        "- 'Interested in recipes with more/fewer carbs?'\n\n"
+                        "For general cooking questions (not recipe requests), respond normally with helpful text."
                         + pantry_context
                     ),
                 },
@@ -149,6 +142,9 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                 json_str = answer[start_idx:end_idx]
                 recipes = json.loads(json_str)
                 
+                # Extract any text after the JSON (follow-up message)
+                follow_up_text = answer[end_idx:].strip()
+                
                 # Generate images for each recipe
                 for recipe in recipes:
                     if isinstance(recipe, dict) and 'name' in recipe and 'ingredients' in recipe:
@@ -158,13 +154,17 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                         else:
                             recipe['image'] = ""
                 
-                # Return the updated recipes with images
-                return {"answer": json.dumps(recipes)}
+                # Return the updated recipes with images AND the follow-up text
+                result = {
+                    "answer": json.dumps(recipes),
+                    "follow_up": follow_up_text if follow_up_text else None
+                }
+                return result
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             print(f"Error parsing JSON response: {e}")
             # If JSON parsing fails, return the original answer
             pass
         
-        return {"answer": answer}
+        return {"answer": answer, "follow_up": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

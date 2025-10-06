@@ -277,83 +277,84 @@ export const MealPlannerScreen = () => {
               );
             })}
           </View>
-
-          {/* Quick Actions */}
-          <View style={styles.quickActionsContainer}>
-            <Text style={styles.quickActionsTitle}>
-              Quick Actions
-            </Text>
-            <View style={styles.quickActionsRow}>
-              <TouchableOpacity
-                style={[styles.quickActionCard, styles.quickActionGrocery]}
-                onPress={() => navigation.navigate('GroceryList')}
-              >
-                <Ionicons name="cart" size={24} color="#4F46E5" />
-                <Text style={styles.quickActionGroceryText}>
-                  Generate Shopping List
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.quickActionCard, styles.quickActionSave]}
-                onPress={() => {
-                  // TODO: Save meal plan
-                }}
-              >
-                <Ionicons name="save" size={24} color="#10B981" />
-                <Text style={styles.quickActionSaveText}>
-                  Save Plan
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </ScrollView>
       </SafeAreaView>
 
-      {/* Meal Picker Modal */}
-      <Modal visible={pickerVisible} animationType="fade" transparent onRequestClose={() => setPickerVisible(false)}>
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setPickerVisible(false)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
+      {/* Meal Picker Modal - Large & Colorful */}
+      <Modal visible={pickerVisible} animationType="slide" transparent onRequestClose={() => setPickerVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Colorful Header */}
+            <View style={styles.modalHeaderGradient}>
+              <View style={styles.modalHeaderContent}>
+                <View style={styles.modalIconCircle}>
+                  <Ionicons 
+                    name={
+                      pendingMealType === 'Breakfast' ? 'sunny' :
+                      pendingMealType === 'Lunch' ? 'fast-food' :
+                      pendingMealType === 'Dinner' ? 'restaurant' :
+                      'nutrition'
+                    }
+                    size={32} 
+                    color="#FFFFFF" 
+                  />
+                </View>
                 <Text style={styles.modalTitle}>
                   Add to {pendingMealType || 'Meal'}
                 </Text>
-                <TouchableOpacity onPress={() => setPickerVisible(false)} style={styles.modalCloseButton}>
-                  <Ionicons name="close-circle" size={28} color="#6B7280" />
-                </TouchableOpacity>
+                <Text style={styles.modalSubtitle}>
+                  Choose a meal from your saved recipes
+                </Text>
               </View>
-              {loadingMeals ? (
-                <View style={styles.modalLoading}>
-                  <ActivityIndicator size="large" color="#4F46E5" />
-                </View>
-              ) : (
-                <ScrollView style={styles.modalScroll}>
-                  {availableMeals.map((m) => (
-                    <TouchableOpacity
-                      key={m.id}
-                      style={styles.modalMealItem}
-                      onPress={async () => {
-                        if (pendingDay == null || pendingMealType == null) return;
-                        await ensurePlanAndAdd(pendingDay, pendingMealType, m.id);
-                        setPickerVisible(false);
-                      }}
-                    >
-                      <Text style={styles.modalMealText}>{m.name}</Text>
-                      <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-                    </TouchableOpacity>
-                  ))}
-                  {availableMeals.length === 0 && (
-                    <Text style={styles.modalNoMeals}>No saved meals yet</Text>
-                  )}
-                </ScrollView>
-              )}
+              <TouchableOpacity 
+                onPress={() => setPickerVisible(false)} 
+                style={styles.modalCloseButton}
+              >
+                <Ionicons name="close-circle" size={36} color="#FFFFFF" />
+              </TouchableOpacity>
             </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
+
+            {/* Meals List */}
+            {loadingMeals ? (
+              <View style={styles.modalLoading}>
+                <ActivityIndicator size="large" color="#4F46E5" />
+                <Text style={styles.loadingText}>Loading your meals...</Text>
+              </View>
+            ) : (
+              <ScrollView style={styles.modalScroll} showsVerticalScrollIndicator={false}>
+                {availableMeals.map((m, index) => (
+                  <TouchableOpacity
+                    key={m.id}
+                    style={[
+                      styles.modalMealItem,
+                      index % 2 === 0 ? styles.modalMealItemEven : styles.modalMealItemOdd
+                    ]}
+                    onPress={async () => {
+                      if (pendingDay == null || pendingMealType == null) return;
+                      await ensurePlanAndAdd(pendingDay, pendingMealType, m.id);
+                      setPickerVisible(false);
+                    }}
+                  >
+                    <View style={styles.modalMealIcon}>
+                      <Ionicons name="restaurant" size={20} color="#4F46E5" />
+                    </View>
+                    <Text style={styles.modalMealText}>{m.name}</Text>
+                    <Ionicons name="add-circle" size={28} color="#10B981" />
+                  </TouchableOpacity>
+                ))}
+                {availableMeals.length === 0 && (
+                  <View style={styles.modalEmptyState}>
+                    <Ionicons name="restaurant-outline" size={64} color="#D1D5DB" />
+                    <Text style={styles.modalNoMeals}>No saved meals yet</Text>
+                    <Text style={styles.modalEmptyHint}>
+                      Save meals from AI Chef or Recipe Details
+                    </Text>
+                  </View>
+                )}
+              </ScrollView>
+            )}
+          </View>
+        </View>
       </Modal>
 
     </View>
@@ -510,107 +511,121 @@ const styles = StyleSheet.create({
     color: '#6B7280',
     textAlign: 'center',
   },
-  quickActionsContainer: {
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-  },
-  quickActionsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 16,
-  },
-  quickActionsRow: {
-    flexDirection: 'row',
-    gap: 16,
-  },
-  quickActionCard: {
-    flex: 1,
-    padding: 16,
-    borderRadius: 12,
-  },
-  quickActionGrocery: {
-    backgroundColor: '#EEF2FF',
-  },
-  quickActionSave: {
-    backgroundColor: '#D1FAE5',
-  },
-  quickActionGroceryText: {
-    color: '#4F46E5',
-    fontWeight: '500',
-    marginTop: 8,
-  },
-  quickActionSaveText: {
-    color: '#059669',
-    fontWeight: '500',
-    marginTop: 8,
-  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 20,
-    padding: 20,
-    width: '100%',
-    maxWidth: 400,
-    maxHeight: '70%',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    height: '80%',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 10 },
+    shadowOffset: { width: 0, height: -5 },
     shadowOpacity: 0.3,
     shadowRadius: 20,
-    elevation: 10,
+    elevation: 20,
   },
-  modalHeader: {
-    flexDirection: 'row',
+  modalHeaderGradient: {
+    backgroundColor: '#4F46E5',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 20,
+    position: 'relative',
+  },
+  modalHeaderContent: {
     alignItems: 'center',
-    justifyContent: 'space-between',
+  },
+  modalIconCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3F4F6',
   },
   modalTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: '#111827',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.9)',
+    textAlign: 'center',
   },
   modalCloseButton: {
-    padding: 4,
-  },
-  modalCloseText: {
-    color: '#4F46E5',
+    position: 'absolute',
+    top: 16,
+    right: 16,
   },
   modalLoading: {
-    paddingVertical: 40,
+    paddingVertical: 60,
     alignItems: 'center',
   },
+  loadingText: {
+    marginTop: 12,
+    color: '#6B7280',
+    fontSize: 14,
+  },
   modalScroll: {
-    maxHeight: 400,
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 20,
   },
   modalMealItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: '#F9FAFB',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  modalMealItemEven: {
+    backgroundColor: '#F0F9FF',
+  },
+  modalMealItemOdd: {
+    backgroundColor: '#FAF5FF',
+  },
+  modalMealIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
   modalMealText: {
     color: '#111827',
     fontSize: 16,
+    fontWeight: '500',
     flex: 1,
+  },
+  modalEmptyState: {
+    alignItems: 'center',
+    paddingVertical: 60,
   },
   modalNoMeals: {
     color: '#6B7280',
-    paddingVertical: 40,
+    fontSize: 18,
+    fontWeight: '600',
+    marginTop: 16,
+  },
+  modalEmptyHint: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    marginTop: 8,
     textAlign: 'center',
-    fontSize: 16,
   },
 });

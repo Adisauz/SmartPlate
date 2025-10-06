@@ -98,6 +98,7 @@ export const AIChefScreen = () => {
       // Try to parse JSON recipes from the response
       let recipes: Recipe[] = [];
       let messageText = response.data.answer;
+      let followUpText = response.data.follow_up;
       
       try {
         const parsed = JSON.parse(response.data.answer);
@@ -119,6 +120,19 @@ export const AIChefScreen = () => {
 
       setMessages(prev => [...prev, aiMessage]);
 
+      // If there's a follow-up message, add it as a separate message
+      if (followUpText && recipes.length > 0) {
+        setTimeout(() => {
+          const followUpMessage: ChatMessage = {
+            id: (Date.now() + 2).toString(),
+            type: 'ai',
+            message: followUpText,
+            timestamp: new Date(),
+          };
+          setMessages(prev => [...prev, followUpMessage]);
+        }, 500);
+      }
+
       // Fade in animation for AI message
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -128,7 +142,7 @@ export const AIChefScreen = () => {
 
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 100);
+      }, 800);
     } catch (error) {
       console.error('Error sending message:', error);
       const errorMessage: ChatMessage = {
@@ -192,27 +206,60 @@ export const AIChefScreen = () => {
         image: selectedRecipeForMeal.image,
       };
       
-      await api.post('/meals/', payload);
+      const mealResponse = await api.post('/meals/', payload);
+      const mealId = mealResponse.data.id;
       
-      // Close modal
-      setShowMealTypeModal(false);
-      setSelectedRecipeForMeal(null);
+      // Get today's day of week (0 = Monday, 6 = Sunday)
+      const today = new Date().getDay();
+      const dayIndex = today === 0 ? 6 : today - 1; // Convert Sunday from 0 to 6
       
-      // Show success message
-      Alert.alert(
-        'Success!',
-        `"${selectedRecipeForMeal.name}" has been saved to your meals. Go to Meal Planner to add it to ${mealType}.`,
-        [
-          {
-            text: 'Go to Meal Planner',
-            onPress: () => navigation.navigate('MealPlanner')
-          },
-          {
-            text: 'Stay Here',
-            style: 'cancel'
-          }
-        ]
-      );
+      // Try to add to existing plan or create new one
+      try {
+        const plansResponse = await api.get('/plans/');
+        let planId = null;
+        
+        if (plansResponse.data && plansResponse.data.length > 0) {
+          planId = plansResponse.data[0].id;
+        } else {
+          // Create new plan
+          const startDate = new Date().toISOString().slice(0, 10);
+          const newPlanResponse = await api.post('/plans/', {
+            start_date: startDate,
+            items: [],
+          });
+          planId = newPlanResponse.data.id;
+        }
+        
+        // Add meal to the plan with the selected meal type
+        await api.post(`/plans/${planId}/add-meal`, {
+          day: dayIndex,
+          meal_id: mealId,
+          meal_type: mealType
+        });
+        
+        // Close modal
+        setShowMealTypeModal(false);
+        setSelectedRecipeForMeal(null);
+        
+        // Show success message
+        Alert.alert(
+          'Success!',
+          `"${selectedRecipeForMeal.name}" has been added to ${mealType} for today!`,
+          [
+            {
+              text: 'View Meal Plan',
+              onPress: () => navigation.navigate('MealPlanner')
+            },
+            {
+              text: 'OK',
+              style: 'cancel'
+            }
+          ]
+        );
+      } catch (planError) {
+        console.error('Error adding to plan:', planError);
+        Alert.alert('Meal Saved', `"${selectedRecipeForMeal.name}" was saved but couldn't be added to meal plan. You can add it manually from the Meal Planner.`);
+      }
       
     } catch (error) {
       console.error('Error saving meal:', error);
@@ -293,21 +340,48 @@ export const AIChefScreen = () => {
     const lines = text.split('\n');
     const textColor = isUser ? '#FFFFFF' : '#374151';
     
+    // Helper function to render text with bold markdown
+    const renderTextWithMarkdown = (content: string) => {
+      // Check if there's any markdown
+      if (!content.includes('**') && !content.includes('__')) {
+        return content;
+      }
+      
+      // Split by bold patterns (**text** or __text__)
+      const parts = content.split(/(\*\*.*?\*\*|__.*?__)/g);
+      
+      return parts.map((part, partIndex) => {
+        // Check if this part is bold
+        if ((part.startsWith('**') && part.endsWith('**')) || 
+            (part.startsWith('__') && part.endsWith('__'))) {
+          return (
+            <Text key={partIndex} style={{ fontWeight: 'bold' }}>
+              {part.slice(2, -2)}
+            </Text>
+          );
+        }
+        return <Text key={partIndex}>{part}</Text>;
+      });
+    };
+    
     return lines.map((line, index) => {
+      const trimmedLine = line.trim();
+      
       // Check for bullet points (- or *)
-      if (line.trim().startsWith('- ') || line.trim().startsWith('* ')) {
+      if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ')) {
+        const bulletContent = trimmedLine.substring(2);
         return (
           <View key={index} style={{ flexDirection: 'row', marginBottom: 6 }}>
             <Text style={{ color: textColor, fontSize: 16, marginRight: 8 }}>•</Text>
             <Text style={{ color: textColor, fontSize: 16, lineHeight: 22, flex: 1 }}>
-              {line.trim().substring(2)}
+              {renderTextWithMarkdown(bulletContent)}
             </Text>
           </View>
         );
       }
       
       // Check for numbered lists (1. 2. etc)
-      const numberedMatch = line.trim().match(/^(\d+)\.\s+(.+)/);
+      const numberedMatch = trimmedLine.match(/^(\d+)\.\s+(.+)/);
       if (numberedMatch) {
         return (
           <View key={index} style={{ flexDirection: 'row', marginBottom: 6 }}>
@@ -315,37 +389,17 @@ export const AIChefScreen = () => {
               {numberedMatch[1]}.
             </Text>
             <Text style={{ color: textColor, fontSize: 16, lineHeight: 22, flex: 1 }}>
-              {numberedMatch[2]}
+              {renderTextWithMarkdown(numberedMatch[2])}
             </Text>
           </View>
         );
       }
       
-      // Check for bold text (**text**)
-      const boldMatch = line.match(/\*\*(.+?)\*\*/g);
-      if (boldMatch) {
-        const parts = line.split(/(\*\*.+?\*\*)/);
-        return (
-          <Text key={index} style={{ color: textColor, fontSize: 16, lineHeight: 22, marginBottom: line ? 6 : 0 }}>
-            {parts.map((part, partIndex) => {
-              if (part.startsWith('**') && part.endsWith('**')) {
-                return (
-                  <Text key={partIndex} style={{ fontWeight: 'bold' }}>
-                    {part.slice(2, -2)}
-                  </Text>
-                );
-              }
-              return part;
-            })}
-          </Text>
-        );
-      }
-      
-      // Regular text
-      if (line.trim()) {
+      // Regular text (may contain bold markdown)
+      if (trimmedLine) {
         return (
           <Text key={index} style={{ color: textColor, fontSize: 16, lineHeight: 22, marginBottom: 6 }}>
-            {line}
+            {renderTextWithMarkdown(line)}
           </Text>
         );
       }
@@ -613,60 +667,75 @@ export const AIChefScreen = () => {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Meal Type Selection Modal */}
+      {/* Meal Type Selection Modal - Centered & Larger */}
       <Modal
         visible={showMealTypeModal}
-        animationType="slide"
+        animationType="fade"
         transparent={true}
         onRequestClose={() => setShowMealTypeModal(false)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
-          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 }}>
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827' }}>
+        <TouchableOpacity 
+          style={styles.mealModalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowMealTypeModal(false)}
+        >
+          <TouchableOpacity 
+            activeOpacity={1} 
+            onPress={(e) => e.stopPropagation()}
+            style={styles.mealModalContent}
+          >
+            <View style={styles.mealModalHeader}>
+              <View style={styles.mealModalIconContainer}>
+                <Ionicons name="calendar" size={28} color="#4F46E5" />
+              </View>
+              <Text style={styles.mealModalTitle}>
                 Add to Meal Plan
               </Text>
-              <TouchableOpacity onPress={() => setShowMealTypeModal(false)}>
-                <Ionicons name="close" size={24} color="#6B7280" />
+              <TouchableOpacity 
+                onPress={() => setShowMealTypeModal(false)}
+                style={styles.mealModalCloseButton}
+              >
+                <Ionicons name="close-circle" size={32} color="#9CA3AF" />
               </TouchableOpacity>
             </View>
             
-            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
-              Choose which meal type to save this recipe as:
-            </Text>
-
-            {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map((mealType) => (
-              <TouchableOpacity
-                key={mealType}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: 16,
-                  backgroundColor: '#F9FAFB',
-                  borderRadius: 12,
-                  marginBottom: 12,
-                }}
-                onPress={() => saveMealAndNavigate(mealType)}
-              >
-                <Ionicons
-                  name={
-                    mealType === 'Breakfast' ? 'sunny-outline' :
-                    mealType === 'Lunch' ? 'fast-food-outline' :
-                    mealType === 'Dinner' ? 'restaurant-outline' :
-                    'nutrition-outline'
-                  }
-                  size={24}
-                  color="#4F46E5"
-                  style={{ marginRight: 12 }}
-                />
-                <Text style={{ fontSize: 16, color: '#111827', flex: 1 }}>
-                  {mealType}
+            {selectedRecipeForMeal && (
+              <View style={styles.mealModalRecipeInfo}>
+                <Text style={styles.mealModalRecipeName} numberOfLines={2}>
+                  {selectedRecipeForMeal.name}
                 </Text>
-                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
+                <Text style={styles.mealModalSubtext}>
+                  Choose when you'd like to eat this meal:
+                </Text>
+              </View>
+            )}
+
+            <View style={styles.mealTypeGrid}>
+              {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map((mealType) => (
+                <TouchableOpacity
+                  key={mealType}
+                  style={styles.mealTypeCard}
+                  onPress={() => saveMealAndNavigate(mealType)}
+                >
+                  <View style={styles.mealTypeIconCircle}>
+                    <Ionicons
+                      name={
+                        mealType === 'Breakfast' ? 'sunny' :
+                        mealType === 'Lunch' ? 'fast-food' :
+                        mealType === 'Dinner' ? 'restaurant' :
+                        'nutrition'
+                      }
+                      size={32}
+                      color="#4F46E5"
+                    />
+                  </View>
+                  <Text style={styles.mealTypeCardText}>{mealType}</Text>
+                  <Ionicons name="arrow-forward-circle" size={24} color="#10B981" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
       
     </SafeAreaView>
@@ -768,6 +837,99 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     marginLeft: 4,
+  },
+  // New meal modal styles
+  mealModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  mealModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  mealModalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+    position: 'relative',
+  },
+  mealModalIconContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  mealModalTitle: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#111827',
+    textAlign: 'center',
+  },
+  mealModalCloseButton: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+  },
+  mealModalRecipeInfo: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 20,
+  },
+  mealModalRecipeName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  mealModalSubtext: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+  mealTypeGrid: {
+    gap: 12,
+  },
+  mealTypeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 18,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  mealTypeIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#EEF2FF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  mealTypeCardText: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+    flex: 1,
   },
 });
 

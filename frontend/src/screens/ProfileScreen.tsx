@@ -277,7 +277,7 @@ export const ProfileScreen = () => {
               </Text>
             </View>
           </View>
-          
+
           <Text style={styles.profileName}>{profile?.name || profile?.username}</Text>
           <Text style={styles.profileEmail}>{profile?.email || 'No email set'}</Text>
           
@@ -452,7 +452,7 @@ export const ProfileScreen = () => {
               </TouchableOpacity>
             </ScrollView>
           </View>
-        </View>
+                </View>
       </Modal>
 
       {/* Edit Goals Modal */}
