@@ -82,9 +82,8 @@ export const MealPlannerScreen = () => {
               groupedMeals[item.day] = {};
             }
             
-            // For now, add to all meal types since we don't store meal type in backend
-            // TODO: Update backend to store meal_type
-            const mealType = 'Breakfast'; // Default for now
+            // Use the meal_type from the backend
+            const mealType = item.meal_type || 'Breakfast';
             if (!groupedMeals[item.day][mealType]) {
               groupedMeals[item.day][mealType] = [];
             }
@@ -110,11 +109,11 @@ export const MealPlannerScreen = () => {
       const iso = startDate.toISOString().slice(0, 10);
       const res = await api.post('/plans/', {
         start_date: iso,
-        items: [{ day, meal_id: mealId }],
+        items: [{ day, meal_id: mealId, meal_type: mealType }],
       });
       setPlanId(res.data.id);
     } else {
-      await api.post(`/plans/${planId}/add-meal`, { day, meal_id: mealId });
+      await api.post(`/plans/${planId}/add-meal`, { day, meal_id: mealId, meal_type: mealType });
     }
 
     setDayMeals((prev) => {

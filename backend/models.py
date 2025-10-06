@@ -67,6 +67,7 @@ class MealOut(MealBase):
 class MealPlanItemBase(BaseModel):
     day: int  # 0=Monday, 6=Sunday
     meal_id: int
+    meal_type: Optional[str] = 'Breakfast'  # Breakfast, Lunch, Dinner, Snacks
 
 class MealPlanCreate(BaseModel):
     start_date: date

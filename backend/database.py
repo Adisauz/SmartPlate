@@ -157,4 +157,16 @@ async def init_db():
                 await db.execute("ALTER TABLE meals ADD COLUMN cook_time INTEGER DEFAULT 0")
         except Exception:
             pass
+        
+        # Migrate meal_plan_items to add meal_type
+        try:
+            cursor = await db.execute("PRAGMA table_info(meal_plan_items)")
+            cols = await cursor.fetchall()
+            col_names = [col[1] for col in cols]
+            
+            if 'meal_type' not in col_names:
+                await db.execute("ALTER TABLE meal_plan_items ADD COLUMN meal_type TEXT DEFAULT 'Breakfast'")
+        except Exception:
+            pass
+        
         await db.commit() 

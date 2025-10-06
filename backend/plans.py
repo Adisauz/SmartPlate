@@ -29,8 +29,8 @@ async def create_plan(plan: MealPlanCreate, user_id: int = Depends(get_current_u
         plan_id = cursor.lastrowid
         for item in plan.items:
             await db.execute(
-                "INSERT INTO meal_plan_items (meal_plan_id, day, meal_id) VALUES (?, ?, ?)",
-                (plan_id, item.day, item.meal_id)
+                "INSERT INTO meal_plan_items (meal_plan_id, day, meal_id, meal_type) VALUES (?, ?, ?, ?)",
+                (plan_id, item.day, item.meal_id, item.meal_type or 'Breakfast')
             )
         await db.commit()
     return MealPlanOut(id=plan_id, user_id=user_id, start_date=plan.start_date, items=plan.items)
@@ -43,8 +43,8 @@ async def list_plans(user_id: int = Depends(get_current_user)):
         result = []
         for plan in plans:
             plan_id, start_date_str = plan
-            cursor2 = await db.execute("SELECT day, meal_id FROM meal_plan_items WHERE meal_plan_id = ?", (plan_id,))
-            items = [MealPlanItemBase(day=row[0], meal_id=row[1]) for row in await cursor2.fetchall()]
+            cursor2 = await db.execute("SELECT day, meal_id, meal_type FROM meal_plan_items WHERE meal_plan_id = ?", (plan_id,))
+            items = [MealPlanItemBase(day=row[0], meal_id=row[1], meal_type=row[2] or 'Breakfast') for row in await cursor2.fetchall()]
             result.append(MealPlanOut(id=plan_id, user_id=user_id, start_date=date.fromisoformat(start_date_str), items=items))
     return result
 
@@ -66,8 +66,8 @@ async def add_meal_to_plan(plan_id: int, item: MealPlanItemBase, user_id: int = 
             raise HTTPException(status_code=404, detail="Meal plan not found")
         # Insert the meal into the plan
         await db.execute(
-            "INSERT INTO meal_plan_items (meal_plan_id, day, meal_id) VALUES (?, ?, ?)",
-            (plan_id, item.day, item.meal_id)
+            "INSERT INTO meal_plan_items (meal_plan_id, day, meal_id, meal_type) VALUES (?, ?, ?, ?)",
+            (plan_id, item.day, item.meal_id, item.meal_type or 'Breakfast')
         )
         await db.commit()
     return {"message": "Meal added to plan", "plan_id": plan_id, "day": item.day, "meal_id": item.meal_id} 
