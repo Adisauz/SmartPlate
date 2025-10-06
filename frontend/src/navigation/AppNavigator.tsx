@@ -29,7 +29,7 @@ export type RootStackParamList = {
   Pantry: undefined;
   Profile: undefined;
   RecipeDetail: { recipe: any };
-  AIChef: undefined;
+  AIChef: { initialPrompt?: string };
   SavedMeals: undefined;
 };
 

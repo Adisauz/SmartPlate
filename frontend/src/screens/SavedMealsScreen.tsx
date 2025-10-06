@@ -92,7 +92,7 @@ export const SavedMealsScreen = () => {
     if (!imagePath) return 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2';
     if (imagePath.startsWith('http')) return imagePath;
     const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-    return `http://192.168.1.11:8000/static/${filename}`;
+    return `http://192.168.0.193:8000/static/${filename}`;
   };
 
   const handleMealPress = (meal: SavedMeal) => {
@@ -141,7 +141,7 @@ export const SavedMealsScreen = () => {
               </Text>
               <TouchableOpacity
                 style={styles.aiChefButton}
-                onPress={() => navigation.navigate({ name: 'AIChef', params: undefined })}
+                onPress={() => navigation.navigate('AIChef', {})}
               >
                 <Text style={styles.aiChefButtonText}>Ask AI Chef</Text>
               </TouchableOpacity>

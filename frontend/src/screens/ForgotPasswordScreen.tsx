@@ -76,9 +76,9 @@ export const ForgotPasswordScreen = () => {
 
   const navigateToResetPassword = () => {
     if (resetToken) {
-      navigation.navigate({ name: 'ResetPassword', params: { resetToken } });
+      navigation.navigate('ResetPassword', { resetToken });
     } else {
-      navigation.navigate({ name: 'ResetPassword', params: { resetToken: '' } });
+      navigation.navigate('ResetPassword', { resetToken: '' });
     }
   };
 
@@ -177,7 +177,7 @@ export const ForgotPasswordScreen = () => {
 
                   <View className="flex-row justify-center mt-6">
                     <Text className="text-gray-600">Remember your password? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'Login', params: undefined })}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
                       <Text className="text-indigo-600 font-medium">Sign In</Text>
                     </TouchableOpacity>
                   </View>

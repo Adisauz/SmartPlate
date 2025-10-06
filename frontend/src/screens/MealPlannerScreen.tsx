@@ -169,22 +169,48 @@ export const MealPlannerScreen = () => {
                     <Text style={styles.mealTitle}>
                       {meal}
                     </Text>
-                    <TouchableOpacity
-                      style={styles.mealAddButton}
-                      onPress={() => onPressAddForMealType(selectedDay, meal)}
-                    >
-                      <Ionicons name="add" size={20} color="#4F46E5" />
-                    </TouchableOpacity>
+                    <View style={styles.mealHeaderButtons}>
+                      <TouchableOpacity
+                        style={styles.aiButton}
+                        onPress={() => navigation.navigate({ 
+                          name: 'AIChef', 
+                          params: { 
+                            initialPrompt: `Suggest some ${meal.toLowerCase()} recipes for me` 
+                          } 
+                        })}
+                      >
+                        <Ionicons name="sparkles" size={18} color="#9333EA" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        style={styles.mealAddButton}
+                        onPress={() => onPressAddForMealType(selectedDay, meal)}
+                      >
+                        <Ionicons name="add" size={20} color="#4F46E5" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
                   {/* Planned meals for selected day and meal type */}
                   <View style={styles.plannedMeals}>
                     {mealsForType.length > 0 ? (
                       mealsForType.map((m) => (
-                        <View key={m.id} style={styles.plannedMealItem}>
+                        <TouchableOpacity 
+                          key={m.id} 
+                          style={styles.plannedMealItem}
+                          onPress={async () => {
+                            try {
+                              // Fetch full meal details
+                              const res = await api.get(`/meals/${m.id}`);
+                              navigation.navigate('RecipeDetail', { recipe: res.data });
+                            } catch (err) {
+                              console.error('Error loading meal:', err);
+                            }
+                          }}
+                        >
                           <View style={styles.mealBullet} />
                           <Text style={styles.plannedMealText}>{m.name}</Text>
-                        </View>
+                          <Ionicons name="chevron-forward" size={16} color="#9CA3AF" style={{ marginLeft: 'auto' }} />
+                        </TouchableOpacity>
                       ))
                     ) : (
                       <Text style={styles.noMealsText}>No meals planned</Text>
@@ -203,7 +229,7 @@ export const MealPlannerScreen = () => {
             <View style={styles.quickActionsRow}>
               <TouchableOpacity
                 style={[styles.quickActionCard, styles.quickActionGrocery]}
-                onPress={() => navigation.navigate({ name: 'GroceryList', params: undefined })}
+                onPress={() => navigation.navigate('GroceryList')}
               >
                 <Ionicons name="cart" size={24} color="#4F46E5" />
                 <Text style={styles.quickActionGroceryText}>
@@ -358,6 +384,21 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
   },
+  mealHeaderButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  aiButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: '#FAF5FF',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#E9D5FF',
+  },
   mealAddButton: {
     width: 32,
     height: 32,
@@ -374,9 +415,11 @@ const styles = StyleSheet.create({
   plannedMealItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#F3F4F6',
+    borderRadius: 8,
   },
   mealBullet: {
     width: 8,

@@ -5,6 +5,7 @@ from auth import router as auth_router
 from meals import router as meals_router
 from plans import router as plans_router
 from pantry import router as pantry_router
+from grocery import router as grocery_router
 from ai import router as ai_router
 from image_upload import router as upload_router
 from yolo_detection import router as yolo_router
@@ -30,6 +31,7 @@ app.include_router(auth_router)      # /auth endpoints
 app.include_router(meals_router)     # /meals endpoints
 app.include_router(plans_router)     # /plans endpoints
 app.include_router(pantry_router)    # /pantry endpoints
+app.include_router(grocery_router)   # /grocery endpoints
 app.include_router(ai_router)        # /ask-ai endpoint(s)
 app.include_router(upload_router)    # image upload endpoints
 app.include_router(yolo_router)      # /detect endpoints

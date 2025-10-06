@@ -99,7 +99,7 @@ export const ResetPasswordScreen = () => {
 
       // Navigate to login screen after a short delay
       setTimeout(() => {
-        navigation.navigate({ name: 'Login', params: undefined });
+        navigation.navigate('Login');
       }, 2000);
     } catch (err: any) {
       let errorMessage = 'Failed to reset password';
@@ -249,14 +249,14 @@ export const ResetPasswordScreen = () => {
 
                   <View className="flex-row justify-center mt-6">
                     <Text className="text-gray-600">Don't have a token? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'ForgotPassword', params: undefined })}>
+                    <TouchableOpacity onPress={() => navigation.navigate('ForgotPassword')}>
                       <Text className="text-indigo-600 font-medium">Get Reset Token</Text>
                     </TouchableOpacity>
                   </View>
 
                   <View className="flex-row justify-center mt-2">
                     <Text className="text-gray-600">Remember your password? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'Login', params: undefined })}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Login')}>
                       <Text className="text-indigo-600 font-medium">Sign In</Text>
                     </TouchableOpacity>
                   </View>

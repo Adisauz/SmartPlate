@@ -19,51 +19,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type PantryItem = { id: number; name: string };
 
-// Recipe data (expand as needed)
-const recipes = [
-  {
-    id: '1',
-    name: 'Tomato Rice',
-    image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2',
-    ingredients: ['Tomato Sauce', 'Rice', 'Olive Oil', 'Black Pepper'],
-  },
-  {
-    id: '2',
-    name: 'Tuna Rice Bowl',
-    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd',
-    ingredients: ['Canned Tuna', 'Rice', 'Olive Oil'],
-  },
-  {
-    id: '3',
-    name: 'Pepper Pasta',
-    image: 'https://images.unsplash.com/photo-1550304943-4f24f54ddde9',
-    ingredients: ['Pasta', 'Black Pepper', 'Olive Oil'],
-  },
-  {
-    id: '4',
-    name: 'Simple Tuna',
-    image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836',
-    ingredients: ['Canned Tuna', 'Olive Oil'],
-  },
-  {
-    id: '5',
-    name: 'Rice & Oil',
-    image: 'https://images.unsplash.com/photo-1464306076886-debca5e8a6b0',
-    ingredients: ['Rice', 'Olive Oil'],
-  },
-  {
-    id: '6',
-    name: 'Tomato Pepper Mix',
-    image: 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c',
-    ingredients: ['Tomato Sauce', 'Black Pepper'],
-  },
-  {
-    id: '7',
-    name: 'Tuna Pasta',
-    image: 'https://images.unsplash.com/photo-1519864600265-abb23847ef2c',
-    ingredients: ['Canned Tuna', 'Pasta', 'Olive Oil'],
-  },
-];
+type SavedMeal = {
+  id: number;
+  name: string;
+  ingredients: string[];
+  image: string;
+};
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.8;
@@ -83,7 +44,16 @@ type DisplayRecipe = {
 export const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const [userName, setUserName] = useState('User');
-  const [pantry, setPantry] = useState<PantryItem[]>([]);
+  const [savedMeals, setSavedMeals] = useState<SavedMeal[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Helper function to get image URL
+  const getImageUrl = (imagePath: string) => {
+    if (!imagePath) return 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2';
+    if (imagePath.startsWith('http')) return imagePath;
+    const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
+    return `http://192.168.0.193:8000/static/${filename}`;
+  };
 
   useEffect(() => {
     (async () => {
@@ -95,36 +65,34 @@ export const HomeScreen = () => {
   useEffect(() => {
     (async () => {
       try {
-        const res = await api.get<PantryItem[]>('/pantry/');
-        setPantry(res.data);
+        setLoading(true);
+        const res = await api.get('/meals/');
+        const meals = res.data.map((meal: any) => ({
+          id: meal.id,
+          name: meal.name,
+          ingredients: Array.isArray(meal.ingredients) 
+            ? meal.ingredients 
+            : (typeof meal.ingredients === 'string' ? meal.ingredients.split(',').map((i: string) => i.trim()) : []),
+          image: getImageUrl(meal.image),
+        }));
+        setSavedMeals(meals.slice(0, 3)); // Get top 3 saved meals
       } catch (e) {
-        // ignore
+        console.error('Error loading saved meals:', e);
+      } finally {
+        setLoading(false);
       }
     })();
   }, []);
 
-  // Pantry ingredient names
-  const pantryNames = pantry.map((item) => item.name);
-
-  // Recipes you can make (all ingredients in pantry)
-  const canMake = recipes.filter((recipe) =>
-    recipe.ingredients.every((ing) => pantryNames.includes(ing))
-  );
-
-  // Recipes that are almost there (fewest missing ingredients, at least 1 missing)
-  const almostThere = recipes
-    .filter((recipe) => !canMake.includes(recipe))
-    .map((recipe) => ({
-      ...recipe,
-      missing: recipe.ingredients.filter((ing) => !pantryNames.includes(ing)),
-    }))
-    .sort((a, b) => a.missing.length - b.missing.length);
-
-  // Combine and limit to 6
-  const displayRecipes: DisplayRecipe[] = [
-    ...canMake.map((r) => ({ ...r, canMake: true })),
-    ...almostThere.map((r) => ({ ...r, canMake: false, missing: r.missing })),
-  ].slice(0, 6);
+  // Transform saved meals to display format
+  const displayRecipes: DisplayRecipe[] = savedMeals.map((meal) => ({
+    id: meal.id.toString(),
+    name: meal.name,
+    image: meal.image,
+    ingredients: meal.ingredients,
+    canMake: true, // Assuming saved meals are ones you can make
+    missing: [],
+  }));
 
   return (
     <View style={styles.container}>
@@ -140,7 +108,7 @@ export const HomeScreen = () => {
                 <Text style={styles.subGreeting}>What's cooking today?</Text>
               </View>
               <TouchableOpacity
-                onPress={() => navigation.navigate({ name: 'Profile', params: undefined })}
+                onPress={() => navigation.navigate('Profile')}
                 style={styles.profileButton}
               >
                 <Ionicons name="person-outline" size={24} color="#4F46E5" />
@@ -150,7 +118,7 @@ export const HomeScreen = () => {
 
           {/* AI Chef Feature Card */}
           <View style={styles.aiChefContainer}>
-            <TouchableOpacity onPress={() => navigation.navigate({ name: 'AIChef', params: undefined })}>
+            <TouchableOpacity onPress={() => navigation.navigate('AIChef', {})}>
               <LinearGradient
                 colors={["#3B82F6", "#9333EA"]}
                 start={{ x: 0, y: 0 }}
@@ -180,50 +148,71 @@ export const HomeScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {/* Recipes You Can Make & Almost There */}
+          {/* Your Saved Recipes */}
           <View style={styles.recipesSection}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                Recipes You Can Make
+                Your Saved Recipes
               </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('SavedMeals')}>
+                <Text style={styles.seeAllText}>See All →</Text>
+              </TouchableOpacity>
             </View>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              snapToInterval={CARD_WIDTH + SPACING}
-              decelerationRate="fast"
-              contentContainerStyle={{
-                paddingHorizontal: (width - CARD_WIDTH) / 2,
-              }}
-            >
-              {displayRecipes.map((recipe, index) => (
-                <TouchableOpacity
-                  key={recipe.id}
-                  onPress={() => navigation.navigate({ name: 'RecipeDetail', params: { recipe } })}
-                  style={[styles.recipeCard, { width: CARD_WIDTH }]}
+            {loading ? (
+              <View style={styles.loadingContainer}>
+                <Text style={styles.loadingText}>Loading recipes...</Text>
+              </View>
+            ) : displayRecipes.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Text style={styles.emptyText}>No saved recipes yet</Text>
+                <TouchableOpacity 
+                  style={styles.emptyButton}
+                  onPress={() => navigation.navigate('AIChef', {})}
                 >
-                  <View style={styles.recipeCardInner}>
-                    <Image
-                      source={{ uri: recipe.image }}
-                      style={styles.recipeImage}
-                      resizeMode="cover"
-                    />
-                    <View style={styles.recipeInfo}>
-                      <Text style={styles.recipeName}>
-                        {recipe.name}
-                      </Text>
-                      {recipe.canMake ? (
-                        <Text style={styles.availableText}>All ingredients available</Text>
-                      ) : (
-                        <Text style={styles.missingText}>
-                          Missing: {recipe.missing ? recipe.missing.join(', ') : ''}
-                        </Text>
-                      )}
-                    </View>
-                  </View>
+                  <Text style={styles.emptyButtonText}>Ask AI Chef for Recipes</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              </View>
+            ) : (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                snapToInterval={CARD_WIDTH + SPACING}
+                decelerationRate="fast"
+                contentContainerStyle={{
+                  paddingHorizontal: (width - CARD_WIDTH) / 2,
+                }}
+              >
+                {displayRecipes.map((recipe) => (
+                  <TouchableOpacity
+                    key={recipe.id}
+                    onPress={async () => {
+                      try {
+                        // Fetch full meal details
+                        const res = await api.get(`/meals/${recipe.id}`);
+                        navigation.navigate('RecipeDetail', { recipe: res.data });
+                      } catch (err) {
+                        console.error('Error loading meal:', err);
+                      }
+                    }}
+                    style={[styles.recipeCard, { width: CARD_WIDTH }]}
+                  >
+                    <View style={styles.recipeCardInner}>
+                      <Image
+                        source={{ uri: recipe.image }}
+                        style={styles.recipeImage}
+                        resizeMode="cover"
+                      />
+                      <View style={styles.recipeInfo}>
+                        <Text style={styles.recipeName}>
+                          {recipe.name}
+                        </Text>
+                        <Text style={styles.availableText}>Saved Recipe</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
           </View>
 
           {/* Quick Actions */}
@@ -233,7 +222,7 @@ export const HomeScreen = () => {
             </Text>
             <View style={styles.quickActionsGrid}>
               <TouchableOpacity
-                onPress={() => navigation.navigate({ name: 'MealPlanner', params: undefined })}
+                onPress={() => navigation.navigate('MealPlanner')}
                 style={[styles.quickActionCard, styles.quickActionIndigo]}
               >
                 <View style={[styles.quickActionIcon, styles.quickActionIconIndigo]}>
@@ -244,7 +233,7 @@ export const HomeScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate({ name: 'GroceryList', params: undefined })}
+                onPress={() => navigation.navigate('GroceryList')}
                 style={[styles.quickActionCard, styles.quickActionGreen]}
               >
                 <View style={[styles.quickActionIcon, styles.quickActionIconGreen]}>
@@ -255,7 +244,7 @@ export const HomeScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate({ name: 'Pantry', params: undefined })}
+                onPress={() => navigation.navigate('Pantry')}
                 style={[styles.quickActionCard, styles.quickActionOrange]}
               >
                 <View style={[styles.quickActionIcon, styles.quickActionIconOrange]}>
@@ -266,7 +255,7 @@ export const HomeScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate({ name: 'AIChef', params: undefined })}
+                onPress={() => navigation.navigate('AIChef', {})}
                 style={[styles.quickActionCard, styles.quickActionBlue]}
               >
                 <View style={[styles.quickActionIcon, styles.quickActionIconBlue]}>
@@ -277,7 +266,7 @@ export const HomeScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate({ name: 'SavedMeals', params: undefined })}
+                onPress={() => navigation.navigate('SavedMeals')}
                 style={[styles.quickActionCard, styles.quickActionPink]}
               >
                 <View style={[styles.quickActionIcon, styles.quickActionIconPink]}>
@@ -288,7 +277,7 @@ export const HomeScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => navigation.navigate({ name: 'Profile', params: undefined })}
+                onPress={() => navigation.navigate('Profile')}
                 style={[styles.quickActionCard, styles.quickActionPurple]}
               >
                 <View style={[styles.quickActionIcon, styles.quickActionIconPurple]}>
@@ -407,6 +396,41 @@ const styles = StyleSheet.create({
   sectionHeader: {
     paddingHorizontal: 16,
     marginBottom: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: '#4F46E5',
+    fontWeight: '500',
+  },
+  loadingContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#6B7280',
+    fontSize: 16,
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#6B7280',
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  emptyButton: {
+    backgroundColor: '#4F46E5',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  emptyButtonText: {
+    color: 'white',
+    fontWeight: '600',
   },
   sectionTitle: {
     fontSize: 20,

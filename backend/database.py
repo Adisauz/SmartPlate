@@ -59,6 +59,15 @@ CREATE TABLE IF NOT EXISTS pantry_items (
 );
 '''
 
+CREATE_GROCERY_ITEMS = '''
+CREATE TABLE IF NOT EXISTS grocery_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+'''
+
 CREATE_PASSWORD_RESET_TOKENS = '''
 CREATE TABLE IF NOT EXISTS password_reset_tokens (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -78,6 +87,7 @@ async def init_db():
         await db.execute(CREATE_MEAL_PLANS)
         await db.execute(CREATE_MEAL_PLAN_ITEMS)
         await db.execute(CREATE_PANTRY_ITEMS)
+        await db.execute(CREATE_GROCERY_ITEMS)
         await db.execute(CREATE_PASSWORD_RESET_TOKENS)
         # Migrate legacy pantry schema that had a 'calories' column
         try:
@@ -98,12 +108,14 @@ async def init_db():
         except Exception:
             pass
         
-        # Migrate users table to add email, height, weight
+        # Migrate users table to add name, email, height, weight
         try:
             cursor = await db.execute("PRAGMA table_info(users)")
             cols = await cursor.fetchall()
             col_names = [col[1] for col in cols]
             
+            if 'name' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN name TEXT")
             if 'email' not in col_names:
                 await db.execute("ALTER TABLE users ADD COLUMN email TEXT")
             if 'height' not in col_names:

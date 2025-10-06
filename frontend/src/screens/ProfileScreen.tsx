@@ -157,7 +157,7 @@ export const ProfileScreen = () => {
       type: 'success',
     });
     setTimeout(() => {
-      navigation.navigate({ name: 'Login', params: undefined });
+      navigation.navigate('Login');
     }, 1500);
   };
 

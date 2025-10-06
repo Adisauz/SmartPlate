@@ -40,10 +40,10 @@ export const GroceryListScreen = () => {
   const loadItems = async () => {
     try {
       setLoading(true);
-      const res = await api.get<PantryItem[]>('/pantry/');
+      const res = await api.get<PantryItem[]>('/grocery/');
       setItems(res.data);
     } catch (e: any) {
-      setToast({ visible: true, message: 'Failed to load pantry', type: 'error' });
+      setToast({ visible: true, message: 'Failed to load grocery list', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export const GroceryListScreen = () => {
     }
     try {
       setLoading(true);
-      const res = await api.post<PantryItem>('/pantry/', { name });
+      const res = await api.post<PantryItem>('/grocery/', { name });
       setItems((prev) => [res.data, ...prev]);
       setNewItemName('');
       setToast({ visible: true, message: 'Item added', type: 'success' });
@@ -71,7 +71,7 @@ export const GroceryListScreen = () => {
   const deleteItem = async (id: number) => {
     try {
       setLoading(true);
-      await api.delete(`/pantry/${id}`);
+      await api.delete(`/grocery/${id}`);
       setItems((prev) => prev.filter((it) => it.id !== id));
       setToast({ visible: true, message: 'Item removed', type: 'success' });
     } catch (e: any) {
@@ -144,7 +144,7 @@ export const GroceryListScreen = () => {
               <View style={styles.addItemInputContainer}>
                 <TextInput
                   style={styles.addItemInput}
-                  placeholder="Add pantry item..."
+                  placeholder="Add grocery item..."
                   value={newItemName}
                   onChangeText={setNewItemName}
                 />
@@ -159,7 +159,7 @@ export const GroceryListScreen = () => {
             </View>
           </View>
 
-          {/* Pantry Items */}
+          {/* Grocery Items */}
           <View style={styles.itemsContainer}>
             {filteredItems.map((item) => (
               <View

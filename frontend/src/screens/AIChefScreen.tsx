@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,11 @@ import {
   SafeAreaView,
   Dimensions,
   Image,
+  Modal,
   StyleSheet,
+  Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -22,6 +24,7 @@ import api from '../utils/api';
 const { height } = Dimensions.get('window');
 
 type AIChefScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AIChef'>;
+type AIChefScreenRouteProp = RouteProp<RootStackParamList, 'AIChef'>;
 
 interface Recipe {
   name: string;
@@ -49,6 +52,7 @@ interface ChatMessage {
 
 export const AIChefScreen = () => {
   const navigation = useNavigation<AIChefScreenNavigationProp>();
+  const route = useRoute<AIChefScreenRouteProp>();
   const scrollViewRef = useRef<ScrollView>(null);
   
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -62,17 +66,19 @@ export const AIChefScreen = () => {
   
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showMealTypeModal, setShowMealTypeModal] = useState(false);
+  const [selectedRecipeForMeal, setSelectedRecipeForMeal] = useState<Recipe | null>(null);
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const sendMessage = async () => {
-    if (!inputMessage.trim() || isLoading) return;
+  const sendMessageWithText = async (text: string) => {
+    if (!text.trim() || isLoading) return;
 
     const userMessage: ChatMessage = {
       id: Date.now().toString(),
       type: 'user',
-      message: inputMessage.trim(),
+      message: text.trim(),
       timestamp: new Date(),
     };
 
@@ -87,7 +93,7 @@ export const AIChefScreen = () => {
     }, 100);
 
     try {
-      const response = await api.post('/ask-ai/', { question: inputMessage.trim() });
+      const response = await api.post('/ask-ai/', { question: text.trim() });
       
       // Try to parse JSON recipes from the response
       let recipes: Recipe[] = [];
@@ -99,10 +105,10 @@ export const AIChefScreen = () => {
           recipes = parsed;
           messageText = `Here are some recipe suggestions for you:`;
         }
-      } catch (e) {
-        // If not JSON, use the response as is
+      } catch {
+        // Not JSON, use as is
       }
-      
+
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'ai',
@@ -111,41 +117,107 @@ export const AIChefScreen = () => {
         recipes: recipes.length > 0 ? recipes : undefined,
       };
 
-      // Add AI response with animation
       setMessages(prev => [...prev, aiMessage]);
-      
-      // Animate new message
+
+      // Fade in animation for AI message
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 500,
         useNativeDriver: true,
       }).start();
-      
-      // Auto-scroll to bottom
+
       setTimeout(() => {
         scrollViewRef.current?.scrollToEnd({ animated: true });
-      }, 200);
-      
+      }, 100);
     } catch (error) {
+      console.error('Error sending message:', error);
       const errorMessage: ChatMessage = {
-        id: (Date.now() + 2).toString(),
+        id: (Date.now() + 1).toString(),
         type: 'ai',
-        message: '❌ Sorry, I encountered an error. Please try again.',
+        message: 'Sorry, I encountered an error. Please try again.',
         timestamp: new Date(),
       };
-      
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const sendMessage = async () => {
+    await sendMessageWithText(inputMessage);
+  };
+
+  // Handle initial prompt from navigation params
+  useEffect(() => {
+    if (route.params?.initialPrompt) {
+      setInputMessage(route.params.initialPrompt);
+      // Auto-send the message after a short delay
+      const timer = setTimeout(() => {
+        sendMessageWithText(route.params.initialPrompt!);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [route.params?.initialPrompt]);
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   const handleRecipePress = (recipe: Recipe) => {
-    navigation.navigate({ name: 'RecipeDetail', params: { recipe } });
+    navigation.navigate('RecipeDetail', { recipe });
+  };
+
+  const handleAddToMealPlan = (recipe: Recipe) => {
+    setSelectedRecipeForMeal(recipe);
+    setShowMealTypeModal(true);
+  };
+
+  const saveMealAndNavigate = async (mealType: string) => {
+    if (!selectedRecipeForMeal) return;
+
+    try {
+      // First save the meal to the database
+      const payload = {
+        name: selectedRecipeForMeal.name,
+        ingredients: selectedRecipeForMeal.ingredients,
+        instructions: selectedRecipeForMeal.instructions,
+        nutrients: {
+          calories: selectedRecipeForMeal.nutrients.calories,
+          protein: selectedRecipeForMeal.nutrients.protein,
+          carbs: selectedRecipeForMeal.nutrients.carbs,
+          fat: selectedRecipeForMeal.nutrients.fat,
+        },
+        prep_time: selectedRecipeForMeal.prep_time,
+        cook_time: selectedRecipeForMeal.cook_time,
+        image: selectedRecipeForMeal.image,
+      };
+      
+      await api.post('/meals/', payload);
+      
+      // Close modal
+      setShowMealTypeModal(false);
+      setSelectedRecipeForMeal(null);
+      
+      // Show success message
+      Alert.alert(
+        'Success!',
+        `"${selectedRecipeForMeal.name}" has been saved to your meals. Go to Meal Planner to add it to ${mealType}.`,
+        [
+          {
+            text: 'Go to Meal Planner',
+            onPress: () => navigation.navigate('MealPlanner')
+          },
+          {
+            text: 'Stay Here',
+            style: 'cancel'
+          }
+        ]
+      );
+      
+    } catch (error) {
+      console.error('Error saving meal:', error);
+      Alert.alert('Error', 'Failed to save meal. Please try again.');
+    }
   };
 
 
@@ -157,53 +229,62 @@ export const AIChefScreen = () => {
       if (imagePath.startsWith('http')) return imagePath;
       // Extract filename from path like "uploaded_images/recipe_xxx.png"
       const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-      return `http://192.168.1.11:8000/static/${filename}`;
+      return `http://192.168.0.193:8000/static/${filename}`;
     };
 
     return (
-      <TouchableOpacity
-        style={styles.recipeCard}
-        onPress={() => handleRecipePress(recipe)}
-      >
-        <View style={styles.recipeImageContainer}>
-          {recipe.image ? (
-            <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.recipeImage} />
-          ) : (
-            <View style={styles.placeholderImage}>
-              <Ionicons name="restaurant" size={24} color="#9CA3AF" />
-            </View>
-          )}
-        </View>
-        <View style={styles.recipeInfo}>
-          <Text style={styles.recipeName} numberOfLines={2}>
-            {recipe.name}
-          </Text>
-          <View style={styles.nutritionRow}>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>{recipe.nutrients.calories}</Text>
-              <Text style={styles.nutritionLabel}>cal</Text>
-            </View>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>{recipe.nutrients.protein}g</Text>
-              <Text style={styles.nutritionLabel}>protein</Text>
-            </View>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>{recipe.nutrients.carbs}g</Text>
-              <Text style={styles.nutritionLabel}>carbs</Text>
-            </View>
-            <View style={styles.nutritionItem}>
-              <Text style={styles.nutritionValue}>{recipe.nutrients.fat}g</Text>
-              <Text style={styles.nutritionLabel}>fat</Text>
-            </View>
+      <View style={styles.recipeCard}>
+        <TouchableOpacity
+          style={styles.recipeCardTouchable}
+          onPress={() => handleRecipePress(recipe)}
+        >
+          <View style={styles.recipeImageContainer}>
+            {recipe.image ? (
+              <Image source={{ uri: getImageUrl(recipe.image) }} style={styles.recipeImage} />
+            ) : (
+              <View style={styles.placeholderImage}>
+                <Ionicons name="restaurant" size={24} color="#9CA3AF" />
+              </View>
+            )}
           </View>
-          <View style={styles.timeContainer}>
-            <Ionicons name="time-outline" size={14} color="#6B7280" />
-            <Text style={styles.timeText}>
-              {recipe.prep_time + recipe.cook_time} min
+          <View style={styles.recipeInfo}>
+            <Text style={styles.recipeName} numberOfLines={2}>
+              {recipe.name}
             </Text>
+            <View style={styles.nutritionRow}>
+              <View style={styles.nutritionItem}>
+                <Text style={styles.nutritionValue}>{recipe.nutrients.calories}</Text>
+                <Text style={styles.nutritionLabel}>cal</Text>
+              </View>
+              <View style={styles.nutritionItem}>
+                <Text style={styles.nutritionValue}>{recipe.nutrients.protein}g</Text>
+                <Text style={styles.nutritionLabel}>protein</Text>
+              </View>
+              <View style={styles.nutritionItem}>
+                <Text style={styles.nutritionValue}>{recipe.nutrients.carbs}g</Text>
+                <Text style={styles.nutritionLabel}>carbs</Text>
+              </View>
+              <View style={styles.nutritionItem}>
+                <Text style={styles.nutritionValue}>{recipe.nutrients.fat}g</Text>
+                <Text style={styles.nutritionLabel}>fat</Text>
+              </View>
+            </View>
+            <View style={styles.timeContainer}>
+              <Ionicons name="time-outline" size={14} color="#6B7280" />
+              <Text style={styles.timeText}>
+                {recipe.prep_time + recipe.cook_time} min
+              </Text>
+            </View>
           </View>
-        </View>
-      </TouchableOpacity>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.addToMealPlanButton}
+          onPress={() => handleAddToMealPlan(recipe)}
+        >
+          <Ionicons name="calendar-outline" size={16} color="#4F46E5" />
+          <Text style={styles.addToMealPlanText}>Add to Meal Plan</Text>
+        </TouchableOpacity>
+      </View>
     );
   };
 
@@ -531,6 +612,62 @@ export const AIChefScreen = () => {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Meal Type Selection Modal */}
+      <Modal
+        visible={showMealTypeModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowMealTypeModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+          <View style={{ backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827' }}>
+                Add to Meal Plan
+              </Text>
+              <TouchableOpacity onPress={() => setShowMealTypeModal(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+            
+            <Text style={{ fontSize: 14, color: '#6B7280', marginBottom: 16 }}>
+              Choose which meal type to save this recipe as:
+            </Text>
+
+            {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map((mealType) => (
+              <TouchableOpacity
+                key={mealType}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  padding: 16,
+                  backgroundColor: '#F9FAFB',
+                  borderRadius: 12,
+                  marginBottom: 12,
+                }}
+                onPress={() => saveMealAndNavigate(mealType)}
+              >
+                <Ionicons
+                  name={
+                    mealType === 'Breakfast' ? 'sunny-outline' :
+                    mealType === 'Lunch' ? 'fast-food-outline' :
+                    mealType === 'Dinner' ? 'restaurant-outline' :
+                    'nutrition-outline'
+                  }
+                  size={24}
+                  color="#4F46E5"
+                  style={{ marginRight: 12 }}
+                />
+                <Text style={{ fontSize: 16, color: '#111827', flex: 1 }}>
+                  {mealType}
+                </Text>
+                <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
       
     </SafeAreaView>
   );
@@ -544,9 +681,7 @@ const styles = StyleSheet.create({
   recipeCard: {
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
-    padding: 12,
     marginBottom: 8,
-    flexDirection: 'row',
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -557,6 +692,26 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1,
     borderColor: '#E5E7EB',
+  },
+  recipeCardTouchable: {
+    flexDirection: 'row',
+    padding: 12,
+  },
+  addToMealPlanButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    backgroundColor: '#EEF2FF',
+    borderTopWidth: 1,
+    borderTopColor: '#E5E7EB',
+    gap: 6,
+  },
+  addToMealPlanText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4F46E5',
   },
   recipeImageContainer: {
     width: 80,

@@ -123,7 +123,7 @@ export const LoginScreen = () => {
                   </View>
 
                   <TouchableOpacity
-                    onPress={() => navigation.navigate({ name: 'ForgotPassword', params: undefined })}
+                    onPress={() => navigation.navigate('ForgotPassword')}
                     style={styles.forgotButton}
                   >
                     <Text style={styles.forgotText}>
@@ -157,7 +157,7 @@ export const LoginScreen = () => {
 
                   <View style={styles.signUpContainer}>
                     <Text style={styles.signUpQuestion}>Don't have an account? </Text>
-                    <TouchableOpacity onPress={() => navigation.navigate({ name: 'Onboarding', params: undefined })}>
+                    <TouchableOpacity onPress={() => navigation.navigate('Onboarding')}>
                       <Text style={styles.signUpLink}>Sign Up</Text>
                     </TouchableOpacity>
                   </View>

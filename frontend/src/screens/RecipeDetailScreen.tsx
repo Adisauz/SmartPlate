@@ -74,7 +74,7 @@ export const RecipeDetailScreen = () => {
       if (imagePath.startsWith('http')) return imagePath;
       // Extract filename from path like "uploaded_images/recipe_xxx.png"
       const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-      return `http://192.168.1.11:8000/static/${filename}`;
+      return `http://192.168.0.193:8000/static/${filename}`;
     };
     
     return {
@@ -94,7 +94,9 @@ export const RecipeDetailScreen = () => {
           }))
         : [],
       instructions: aiRecipe.instructions 
-        ? aiRecipe.instructions.split('\n').filter((step: string) => step.trim())
+        ? aiRecipe.instructions.split('\n')
+            .filter((step: string) => step.trim())
+            .map((step: string) => step.replace(/^\d+\.\s*/, '').replace(/^[-*]\s*/, '').trim())
         : [],
       nutrition: {
         calories: aiRecipe.nutrients?.calories || 0,
@@ -121,17 +123,49 @@ export const RecipeDetailScreen = () => {
   const handleAddToMealPlan = () => {
     setToast({
       visible: true,
-      message: 'Added to meal plan',
+      message: 'Navigating to Meal Planner...',
       type: 'success',
     });
+    setTimeout(() => {
+      navigation.navigate('MealPlanner');
+    }, 500);
   };
 
-  const handleAddToGroceryList = () => {
-    setToast({
-      visible: true,
-      message: 'Added to grocery list',
-      type: 'success',
-    });
+  const handleAddToGroceryList = async () => {
+    try {
+      // Add all ingredients to grocery list
+      for (const ingredient of displayRecipe.ingredients) {
+        await api.post('/grocery/', { name: ingredient.name });
+      }
+      setToast({
+        visible: true,
+        message: 'All ingredients added to grocery list',
+        type: 'success',
+      });
+    } catch (err) {
+      setToast({
+        visible: true,
+        message: 'Failed to add to grocery list',
+        type: 'error',
+      });
+    }
+  };
+
+  const addSingleIngredientToGrocery = async (ingredientName: string) => {
+    try {
+      await api.post('/grocery/', { name: ingredientName });
+      setToast({
+        visible: true,
+        message: `Added ${ingredientName} to grocery list`,
+        type: 'success',
+      });
+    } catch (err) {
+      setToast({
+        visible: true,
+        message: 'Failed to add to grocery list',
+        type: 'error',
+      });
+    }
   };
 
   const toggleFavorite = () => {
@@ -237,19 +271,31 @@ export const RecipeDetailScreen = () => {
                   style={[styles.actionButton, styles.saveButton]}
                   onPress={saveMeal}
                 >
+                  <Ionicons name="bookmark-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
                   <Text style={styles.saveButtonText}>
                     Save Meal
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.actionButton, styles.groceryButton]}
-                  onPress={handleAddToGroceryList}
+                  style={[styles.actionButton, styles.mealPlanButton]}
+                  onPress={handleAddToMealPlan}
                 >
-                  <Text style={styles.groceryButtonText}>
-                    Add to Grocery List
+                  <Ionicons name="calendar-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Text style={styles.mealPlanButtonText}>
+                    Add to Meal Plan
                   </Text>
                 </TouchableOpacity>
               </View>
+              
+              <TouchableOpacity
+                style={[styles.actionButton, styles.groceryButton, { marginTop: 12 }]}
+                onPress={handleAddToGroceryList}
+              >
+                <Ionicons name="cart-outline" size={18} color="#059669" style={{ marginRight: 6 }} />
+                <Text style={styles.groceryButtonText}>
+                  Add All to Grocery List
+                </Text>
+              </TouchableOpacity>
 
               {/* Ingredients */}
               <View style={styles.section}>
@@ -268,6 +314,12 @@ export const RecipeDetailScreen = () => {
                     <Text style={styles.ingredientAmount}>
                       {ingredient.amount} {ingredient.unit}
                     </Text>
+                    <TouchableOpacity
+                      style={styles.addIngredientButton}
+                      onPress={() => addSingleIngredientToGrocery(ingredient.name)}
+                    >
+                      <Ionicons name="cart-outline" size={16} color="#059669" />
+                    </TouchableOpacity>
                   </View>
                 ))}
               </View>
@@ -432,22 +484,35 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   saveButton: {
     backgroundColor: '#4F46E5',
     marginRight: 8,
   },
+  mealPlanButton: {
+    backgroundColor: '#059669',
+    marginLeft: 8,
+  },
   groceryButton: {
     backgroundColor: '#EEF2FF',
-    marginLeft: 8,
+    borderWidth: 1,
+    borderColor: '#D1FAE5',
   },
   saveButtonText: {
     color: 'white',
     textAlign: 'center',
     fontWeight: '600',
   },
+  mealPlanButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: '600',
+  },
   groceryButtonText: {
-    color: '#4F46E5',
+    color: '#059669',
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -480,6 +545,13 @@ const styles = StyleSheet.create({
   },
   ingredientAmount: {
     color: '#6B7280',
+    marginRight: 8,
+  },
+  addIngredientButton: {
+    padding: 6,
+    backgroundColor: '#D1FAE5',
+    borderRadius: 6,
+    marginLeft: 'auto',
   },
   instructionItem: {
     flexDirection: 'row',

@@ -68,12 +68,15 @@ def generate_food_image(recipe_name: str, ingredients: List[str]) -> str:
         
         # Generate unique filename
         image_filename = f"recipe_{uuid.uuid4().hex[:8]}.png"
+        
+        # Use os.path.join for file system operations
         image_path = os.path.join("uploaded_images", image_filename)
         
         # Save the image
         image.save(image_path)
         
-        return image_path
+        # ALWAYS return with forward slashes for URL compatibility (not os.path.join)
+        return f"uploaded_images/{image_filename}"
     except Exception as e:
         print(f"Error generating image: {e}")
         return ""  # Return empty string if image generation fails
