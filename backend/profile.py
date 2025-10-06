@@ -26,7 +26,9 @@ async def get_profile(user_id: int = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             """SELECT id, username, name, email, height, weight, 
-               daily_calorie_goal, daily_protein_goal, daily_carbs_goal, daily_fat_goal 
+               daily_calorie_goal, daily_protein_goal, daily_carbs_goal, daily_fat_goal,
+               breakfast_time, lunch_time, dinner_time, snack_time,
+               dietary_preferences, allergies, cuisine_preferences
                FROM users WHERE id = ?""",
             (user_id,)
         )
@@ -45,7 +47,14 @@ async def get_profile(user_id: int = Depends(get_current_user)):
             daily_calorie_goal=row[6],
             daily_protein_goal=row[7],
             daily_carbs_goal=row[8],
-            daily_fat_goal=row[9]
+            daily_fat_goal=row[9],
+            breakfast_time=row[10],
+            lunch_time=row[11],
+            dinner_time=row[12],
+            snack_time=row[13],
+            dietary_preferences=row[14],
+            allergies=row[15],
+            cuisine_preferences=row[16]
         )
 
 @router.put("/", response_model=UserOut)
@@ -91,6 +100,34 @@ async def update_profile(
             update_fields.append("daily_fat_goal = ?")
             values.append(profile.daily_fat_goal)
         
+        if profile.breakfast_time is not None:
+            update_fields.append("breakfast_time = ?")
+            values.append(profile.breakfast_time)
+        
+        if profile.lunch_time is not None:
+            update_fields.append("lunch_time = ?")
+            values.append(profile.lunch_time)
+        
+        if profile.dinner_time is not None:
+            update_fields.append("dinner_time = ?")
+            values.append(profile.dinner_time)
+        
+        if profile.snack_time is not None:
+            update_fields.append("snack_time = ?")
+            values.append(profile.snack_time)
+        
+        if profile.dietary_preferences is not None:
+            update_fields.append("dietary_preferences = ?")
+            values.append(profile.dietary_preferences)
+        
+        if profile.allergies is not None:
+            update_fields.append("allergies = ?")
+            values.append(profile.allergies)
+        
+        if profile.cuisine_preferences is not None:
+            update_fields.append("cuisine_preferences = ?")
+            values.append(profile.cuisine_preferences)
+        
         if not update_fields:
             raise HTTPException(status_code=400, detail="No fields to update")
         
@@ -104,7 +141,9 @@ async def update_profile(
         # Fetch updated profile
         cursor = await db.execute(
             """SELECT id, username, name, email, height, weight,
-               daily_calorie_goal, daily_protein_goal, daily_carbs_goal, daily_fat_goal
+               daily_calorie_goal, daily_protein_goal, daily_carbs_goal, daily_fat_goal,
+               breakfast_time, lunch_time, dinner_time, snack_time,
+               dietary_preferences, allergies, cuisine_preferences
                FROM users WHERE id = ?""",
             (user_id,)
         )
@@ -120,7 +159,14 @@ async def update_profile(
             daily_calorie_goal=row[6],
             daily_protein_goal=row[7],
             daily_carbs_goal=row[8],
-            daily_fat_goal=row[9]
+            daily_fat_goal=row[9],
+            breakfast_time=row[10],
+            lunch_time=row[11],
+            dinner_time=row[12],
+            snack_time=row[13],
+            dietary_preferences=row[14],
+            allergies=row[15],
+            cuisine_preferences=row[16]
         )
 
 @router.get("/nutrition/today", response_model=Dict)

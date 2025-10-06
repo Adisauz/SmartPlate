@@ -94,17 +94,26 @@ export const RecipeDetailScreen = () => {
           }))
         : [],
       instructions: aiRecipe.instructions 
-        ? aiRecipe.instructions
-            .split(/\n+/)  // Split by one or more newlines
-            .map((step: string) => step.trim())
-            .filter((step: string) => step.length > 0)
-            .map((step: string) => {
-              // Remove markdown numbering (1. 2. etc) and bullet points (- *)
+        ? (() => {
+            let instructionsText = aiRecipe.instructions;
+            let steps: string[] = [];
+            
+            // Try splitting by newlines first
+            steps = instructionsText.split(/\n+/).map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+            
+            // If we only got one step, try splitting by numbered patterns (1. 2. 3.)
+            if (steps.length === 1) {
+              steps = instructionsText.split(/(?=\d+\.\s+)/).map((s: string) => s.trim()).filter((s: string) => s.length > 0);
+            }
+            
+            // Clean up each step - remove markdown numbering and bullet points
+            return steps.map((step: string) => {
               return step
-                .replace(/^\d+\.\s*/, '')
-                .replace(/^[-*]\s*/, '')
+                .replace(/^\d+\.\s*/, '')  // Remove "1. ", "2. ", etc
+                .replace(/^[-*•]\s*/, '')  // Remove "- ", "* ", "• "
                 .trim();
-            })
+            }).filter((step: string) => step.length > 0);
+          })()
         : [],
       nutrition: {
         calories: aiRecipe.nutrients?.calories || 0,
@@ -337,21 +346,25 @@ export const RecipeDetailScreen = () => {
                 <Text style={styles.sectionTitle}>
                   Instructions
                 </Text>
-                {displayRecipe.instructions.map((instruction: any, index: number) => (
-                  <View
-                    key={index}
-                    style={styles.instructionItem}
-                  >
-                    <View style={styles.instructionNumber}>
-                      <Text style={styles.instructionNumberText}>
-                        {index + 1}
+                {displayRecipe.instructions && displayRecipe.instructions.length > 0 ? (
+                  displayRecipe.instructions.map((instruction: any, index: number) => (
+                    <View
+                      key={index}
+                      style={styles.instructionItem}
+                    >
+                      <View style={styles.instructionNumber}>
+                        <Text style={styles.instructionNumberText}>
+                          {index + 1}
+                        </Text>
+                      </View>
+                      <Text style={styles.instructionText}>
+                        {instruction}
                       </Text>
                     </View>
-                    <Text style={styles.instructionText}>
-                      {instruction}
-                    </Text>
-                  </View>
-                ))}
+                  ))
+                ) : (
+                  <Text style={styles.instructionText}>No instructions available</Text>
+                )}
               </View>
 
               {/* Nutrition */}

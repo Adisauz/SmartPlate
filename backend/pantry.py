@@ -45,6 +45,19 @@ async def list_pantry_items(
         rows = await cursor.fetchall()
     return [PantryItemOut(id=row[0], user_id=user_id, name=row[1]) for row in rows]
 
+@router.put("/{item_id}", response_model=PantryItemOut)
+async def update_pantry_item(item_id: int, item: PantryItemCreate, user_id: int = Depends(get_current_user)):
+    async with aiosqlite.connect(DB_PATH) as db:
+        # Check if item exists and belongs to user
+        cursor = await db.execute("SELECT id FROM pantry_items WHERE id = ? AND user_id = ?", (item_id, user_id))
+        if not await cursor.fetchone():
+            raise HTTPException(status_code=404, detail="Pantry item not found")
+        
+        # Update the item
+        await db.execute("UPDATE pantry_items SET name = ? WHERE id = ? AND user_id = ?", (item.name, item_id, user_id))
+        await db.commit()
+    return PantryItemOut(id=item_id, user_id=user_id, name=item.name)
+
 @router.delete("/{item_id}")
 async def delete_pantry_item(item_id: int, user_id: int = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:

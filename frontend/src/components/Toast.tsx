@@ -7,7 +7,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 interface ToastProps {
   visible: boolean;
@@ -45,7 +45,7 @@ export const Toast = ({ visible, message, type, onDismiss }: ToastProps) => {
   if (!visible) return null;
 
   return (
-    <View className="absolute bottom-0 left-0 right-0">
+    <View style={styles.wrapper}>
       <SafeAreaView>
         <Animated.View
           style={[
@@ -56,13 +56,13 @@ export const Toast = ({ visible, message, type, onDismiss }: ToastProps) => {
             },
           ]}
         >
-          <View className="flex-row items-center">
+          <View style={styles.content}>
             <Ionicons
               name={type === 'success' ? 'checkmark-circle' : 'alert-circle'}
               size={24}
               color="white"
             />
-            <Text className="text-white font-medium ml-2 flex-1">
+            <Text style={styles.message}>
               {message}
             </Text>
             <TouchableOpacity onPress={onDismiss}>
@@ -76,6 +76,12 @@ export const Toast = ({ visible, message, type, onDismiss }: ToastProps) => {
 };
 
 const styles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
   container: {
     margin: 16,
     padding: 16,
@@ -88,5 +94,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  content: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  message: {
+    color: 'white',
+    fontWeight: '500',
+    marginLeft: 8,
+    flex: 1,
   },
 }); 

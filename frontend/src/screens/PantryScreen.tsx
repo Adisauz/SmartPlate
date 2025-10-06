@@ -69,6 +69,8 @@ export const PantryScreen = () => {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isDetecting, setIsDetecting] = useState(false);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
+  const [editName, setEditName] = useState('');
 
   const fetchPantryItems = async (searchQuery = '') => {
     try {
@@ -101,8 +103,33 @@ export const PantryScreen = () => {
       setLoading(true);
       await api.delete(`/pantry/${id}`);
       setPantryItems((prev) => prev.filter((it) => it.id !== id));
+      setToast({ visible: true, message: 'Item deleted', type: 'success' });
       setLoading(false);
     } catch (err) {
+      setToast({ visible: true, message: 'Failed to delete item', type: 'error' });
+      setLoading(false);
+    }
+  };
+
+  const handleEdit = (item: PantryItem) => {
+    setEditingItem(item);
+    setEditName(item.name);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem || !editName.trim()) return;
+    try {
+      setLoading(true);
+      await api.put(`/pantry/${editingItem.id}`, { name: editName.trim() });
+      setPantryItems((prev) => 
+        prev.map((it) => it.id === editingItem.id ? { ...it, name: editName.trim() } : it)
+      );
+      setToast({ visible: true, message: 'Item updated', type: 'success' });
+      setEditingItem(null);
+      setEditName('');
+      setLoading(false);
+    } catch (err) {
+      setToast({ visible: true, message: 'Failed to update item', type: 'error' });
       setLoading(false);
     }
   };
@@ -346,12 +373,20 @@ export const PantryScreen = () => {
                       <Text style={styles.itemName}>{item.name}</Text>
                     </View>
                   </View>
-                  <TouchableOpacity
-                    style={styles.deleteButton}
-                    onPress={() => handleDelete(item.id)}
-                  >
-                    <Ionicons name="trash-outline" size={20} color="#EF4444" />
-                  </TouchableOpacity>
+                  <View style={styles.itemActions}>
+                    <TouchableOpacity
+                      style={styles.editButton}
+                      onPress={() => handleEdit(item)}
+                    >
+                      <Ionicons name="create-outline" size={20} color="#059669" />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => handleDelete(item.id)}
+                    >
+                      <Ionicons name="trash-outline" size={20} color="#EF4444" />
+                    </TouchableOpacity>
+                  </View>
                 </View>
               </View>
             ))}
@@ -384,6 +419,49 @@ export const PantryScreen = () => {
           </View>
         </TouchableOpacity>
       </SafeAreaView>
+
+      {/* Edit Item Modal */}
+      <Modal
+        visible={editingItem !== null}
+        animationType="fade"
+        transparent
+        onRequestClose={() => setEditingItem(null)}
+      >
+        <TouchableOpacity
+          style={styles.editModalOverlay}
+          activeOpacity={1}
+          onPress={() => setEditingItem(null)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.editModalContent}>
+              <View style={styles.editModalHeader}>
+                <Text style={styles.editModalTitle}>Edit Item</Text>
+                <TouchableOpacity onPress={() => setEditingItem(null)}>
+                  <Ionicons name="close-circle" size={28} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+              
+              <TextInput
+                style={styles.editModalInput}
+                value={editName}
+                onChangeText={setEditName}
+                placeholder="Item name"
+                autoFocus
+              />
+              
+              <TouchableOpacity
+                style={styles.editModalSaveButton}
+                onPress={handleSaveEdit}
+                disabled={loading || !editName.trim()}
+              >
+                <Text style={styles.editModalSaveButtonText}>
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
 
       <Toast
         visible={toast.visible}
@@ -627,6 +705,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
   },
+  itemActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  editButton: {
+    width: 32,
+    height: 32,
+    backgroundColor: 'white',
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
   deleteButton: {
     width: 32,
     height: 32,
@@ -817,5 +912,54 @@ const styles = StyleSheet.create({
   tryAgainText: {
     color: 'white',
     fontWeight: '500',
+  },
+  editModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  editModalContent: {
+    backgroundColor: 'white',
+    borderRadius: 20,
+    padding: 20,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  editModalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  editModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#111827',
+  },
+  editModalInput: {
+    borderWidth: 1,
+    borderColor: '#D1D5DB',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 16,
+  },
+  editModalSaveButton: {
+    backgroundColor: '#4F46E5',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  editModalSaveButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });

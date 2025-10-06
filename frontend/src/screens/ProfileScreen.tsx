@@ -16,7 +16,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api from '../utils/api';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import Toast from '../components/Toast';
+import { Toast } from '../components/Toast';
 
 type ProfileScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Profile'>;
 
@@ -182,13 +182,13 @@ export const ProfileScreen = () => {
           style: 'destructive',
           onPress: async () => {
             await AsyncStorage.clear();
-            setToast({
-              visible: true,
-              message: 'Logged out successfully',
-              type: 'success',
-            });
-            setTimeout(() => {
-              navigation.navigate('Login');
+    setToast({
+      visible: true,
+      message: 'Logged out successfully',
+      type: 'success',
+    });
+    setTimeout(() => {
+      navigation.navigate('Login');
             }, 1000);
           },
         },
@@ -297,7 +297,7 @@ export const ProfileScreen = () => {
             <Text style={styles.statValue}>{profile?.height || '--'}</Text>
             <Text style={styles.statLabel}>Height (cm)</Text>
           </View>
-          
+
           <View style={styles.statCard}>
             <Ionicons name="fitness-outline" size={24} color="#059669" />
             <Text style={styles.statValue}>{profile?.weight || '--'}</Text>
@@ -444,7 +444,7 @@ export const ProfileScreen = () => {
                 />
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleSaveProfile}
               >
@@ -469,7 +469,7 @@ export const ProfileScreen = () => {
               <TouchableOpacity onPress={() => setShowGoalsModal(false)}>
                 <Ionicons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
-            </View>
+          </View>
 
             <ScrollView style={styles.modalForm}>
               <View style={styles.inputGroup}>
@@ -481,7 +481,7 @@ export const ProfileScreen = () => {
                   placeholder="2000"
                   keyboardType="numeric"
                 />
-              </View>
+                </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Daily Protein Goal (g)</Text>
@@ -502,8 +502,8 @@ export const ProfileScreen = () => {
                   onChangeText={setEditCarbsGoal}
                   placeholder="250"
                   keyboardType="numeric"
-                />
-              </View>
+              />
+            </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.inputLabel}>Daily Fat Goal (g)</Text>
@@ -514,14 +514,14 @@ export const ProfileScreen = () => {
                   placeholder="70"
                   keyboardType="numeric"
                 />
-              </View>
+          </View>
 
-              <TouchableOpacity 
+            <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleSaveGoals}
-              >
+            >
                 <Text style={styles.saveButtonText}>Save Goals</Text>
-              </TouchableOpacity>
+            </TouchableOpacity>
             </ScrollView>
           </View>
         </View>
@@ -531,7 +531,7 @@ export const ProfileScreen = () => {
         visible={toast.visible}
         message={toast.message}
         type={toast.type}
-        onHide={() => setToast({ ...toast, visible: false })}
+        onDismiss={() => setToast({ ...toast, visible: false })}
       />
     </SafeAreaView>
   );

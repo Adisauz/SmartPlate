@@ -10,7 +10,14 @@ CREATE TABLE IF NOT EXISTS users (
     name TEXT,
     email TEXT,
     height REAL,
-    weight REAL
+    weight REAL,
+    breakfast_time TEXT DEFAULT '08:00',
+    lunch_time TEXT DEFAULT '13:00',
+    dinner_time TEXT DEFAULT '19:00',
+    snack_time TEXT DEFAULT '16:00',
+    dietary_preferences TEXT,
+    allergies TEXT,
+    cuisine_preferences TEXT
 );
 '''
 
@@ -60,6 +67,17 @@ CREATE TABLE IF NOT EXISTS pantry_items (
 );
 '''
 
+CREATE_FAVORITE_MEALS = '''
+CREATE TABLE IF NOT EXISTS favorite_meals (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    meal_id INTEGER NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id),
+    FOREIGN KEY(meal_id) REFERENCES meals(id)
+);
+'''
+
 CREATE_GROCERY_ITEMS = '''
 CREATE TABLE IF NOT EXISTS grocery_items (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,6 +106,7 @@ async def init_db():
         await db.execute(CREATE_MEAL_PLANS)
         await db.execute(CREATE_MEAL_PLAN_ITEMS)
         await db.execute(CREATE_PANTRY_ITEMS)
+        await db.execute(CREATE_FAVORITE_MEALS)
         await db.execute(CREATE_GROCERY_ITEMS)
         await db.execute(CREATE_PASSWORD_RESET_TOKENS)
         # Migrate legacy pantry schema that had a 'calories' column
@@ -131,6 +150,20 @@ async def init_db():
                 await db.execute("ALTER TABLE users ADD COLUMN daily_carbs_goal INTEGER DEFAULT 250")
             if 'daily_fat_goal' not in col_names:
                 await db.execute("ALTER TABLE users ADD COLUMN daily_fat_goal INTEGER DEFAULT 70")
+            if 'breakfast_time' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN breakfast_time TEXT DEFAULT '08:00'")
+            if 'lunch_time' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN lunch_time TEXT DEFAULT '13:00'")
+            if 'dinner_time' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN dinner_time TEXT DEFAULT '19:00'")
+            if 'snack_time' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN snack_time TEXT DEFAULT '16:00'")
+            if 'dietary_preferences' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN dietary_preferences TEXT")
+            if 'allergies' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN allergies TEXT")
+            if 'cuisine_preferences' not in col_names:
+                await db.execute("ALTER TABLE users ADD COLUMN cuisine_preferences TEXT")
         except Exception:
             pass
         

@@ -22,6 +22,13 @@ class UserOut(BaseModel):
     daily_protein_goal: Optional[int] = None
     daily_carbs_goal: Optional[int] = None
     daily_fat_goal: Optional[int] = None
+    breakfast_time: Optional[str] = '08:00'
+    lunch_time: Optional[str] = '13:00'
+    dinner_time: Optional[str] = '19:00'
+    snack_time: Optional[str] = '16:00'
+    dietary_preferences: Optional[str] = None
+    allergies: Optional[str] = None
+    cuisine_preferences: Optional[str] = None
 
 class UserProfileUpdate(BaseModel):
     name: Optional[str] = None
@@ -32,6 +39,13 @@ class UserProfileUpdate(BaseModel):
     daily_protein_goal: Optional[int] = None
     daily_carbs_goal: Optional[int] = None
     daily_fat_goal: Optional[int] = None
+    breakfast_time: Optional[str] = None
+    lunch_time: Optional[str] = None
+    dinner_time: Optional[str] = None
+    snack_time: Optional[str] = None
+    dietary_preferences: Optional[str] = None
+    allergies: Optional[str] = None
+    cuisine_preferences: Optional[str] = None
 
 class Nutrients(BaseModel):
     calories: int
