@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   TextInput,
   StyleSheet,
+  Linking,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -14,6 +16,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Toast } from '../components/Toast';
 import api from '../utils/api';
+import * as Clipboard from 'expo-clipboard';
 
 type GroceryListScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'GroceryList'>;
 
@@ -88,6 +91,95 @@ export const GroceryListScreen = () => {
   const filteredItems = items.filter((item) =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Quick Order Platform Data
+  const quickCommercePlatforms = [
+    { 
+      name: 'Zepto', 
+      url: 'https://www.zeptonow.com',
+      deepLink: 'zepto://',
+      color: '#7C3AED',
+      icon: 'flash' as const,
+    },
+    { 
+      name: 'Blinkit', 
+      url: 'https://blinkit.com',
+      deepLink: 'blinkit://',
+      color: '#FFCC00',
+      icon: 'thunderstorm' as const,
+    },
+    { 
+      name: 'Swiggy', 
+      url: 'https://www.swiggy.com/instamart',
+      deepLink: 'swiggy://',
+      color: '#FC8019',
+      icon: 'bicycle' as const,
+    },
+    { 
+      name: 'BigBasket', 
+      url: 'https://www.bigbasket.com',
+      deepLink: 'bigbasket://',
+      color: '#84C225',
+      icon: 'basket' as const,
+    },
+  ];
+
+  const copyListToClipboard = async () => {
+    if (items.length === 0) {
+      setToast({ visible: true, message: 'Your grocery list is empty!', type: 'error' });
+      return;
+    }
+    
+    const itemsList = items.map((item, idx) => `${idx + 1}. ${item.name}`).join('\n');
+    const fullText = `🛒 My Grocery List:\n\n${itemsList}\n\n📱 Created with Meal Planner`;
+    
+    await Clipboard.setStringAsync(fullText);
+    setToast({ visible: true, message: '✅ List copied to clipboard!', type: 'success' });
+  };
+
+  const openPlatform = async (platform: typeof quickCommercePlatforms[0]) => {
+    if (items.length === 0) {
+      setToast({ visible: true, message: 'Add items to your list first!', type: 'error' });
+      return;
+    }
+
+    // Try deep link first, fallback to web URL
+    const canOpenDeepLink = await Linking.canOpenURL(platform.deepLink);
+    
+    if (canOpenDeepLink) {
+      await Linking.openURL(platform.deepLink);
+    } else {
+      await Linking.openURL(platform.url);
+    }
+    
+    setToast({ 
+      visible: true, 
+      message: `Opening ${platform.name}... (List copied!)`, 
+      type: 'success' 
+    });
+    
+    // Also copy list to clipboard for easy pasting
+    await copyListToClipboard();
+  };
+
+  const shareViaWhatsApp = async () => {
+    if (items.length === 0) {
+      setToast({ visible: true, message: 'Your grocery list is empty!', type: 'error' });
+      return;
+    }
+    
+    const itemsList = items.map((item, idx) => `${idx + 1}. ${item.name}`).join('\n');
+    const message = `🛒 My Grocery List:\n\n${itemsList}\n\n📱 Created with Meal Planner`;
+    
+    const whatsappUrl = `whatsapp://send?text=${encodeURIComponent(message)}`;
+    
+    const canOpen = await Linking.canOpenURL(whatsappUrl);
+    if (canOpen) {
+      await Linking.openURL(whatsappUrl);
+    } else {
+      Alert.alert('WhatsApp not installed', 'Please install WhatsApp to share your list.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -190,44 +282,66 @@ export const GroceryListScreen = () => {
             ))}
           </View>
 
-          {/* Quick Actions */}
-          <View style={styles.quickActionsContainer}>
-            <Text style={styles.quickActionsTitle}>
-              Quick Actions
-            </Text>
-            <View style={styles.quickActionsRow}>
-              <TouchableOpacity
-                style={[styles.quickActionCard, styles.quickActionOrder]}
-                onPress={() => {
-                  setToast({
-                    visible: true,
-                    message: 'Order placed successfully',
-                    type: 'success',
-                  });
-                }}
-              >
-                <Ionicons name="cart" size={24} color="#4F46E5" />
-                <Text style={styles.quickActionOrderText}>
-                  Order Delivery
+          {/* Quick Order Section */}
+          {items.length > 0 && (
+            <View style={styles.quickOrderContainer}>
+              <View style={styles.quickOrderHeader}>
+                <Ionicons name="rocket" size={24} color="#4F46E5" />
+                <Text style={styles.quickOrderTitle}>Quick Order</Text>
+              </View>
+              <Text style={styles.quickOrderSubtitle}>
+                Order from your favorite delivery app
+              </Text>
+
+              {/* Platform Cards */}
+              <View style={styles.platformsGrid}>
+                {quickCommercePlatforms.map((platform) => (
+                  <TouchableOpacity
+                    key={platform.name}
+                    style={[
+                      styles.platformCard,
+                      { borderLeftColor: platform.color, borderLeftWidth: 4 }
+                    ]}
+                    onPress={() => openPlatform(platform)}
+                  >
+                    <View style={[styles.platformIconContainer, { backgroundColor: platform.color + '20' }]}>
+                      <Ionicons name={platform.icon} size={24} color={platform.color} />
+                    </View>
+                    <View style={styles.platformInfo}>
+                      <Text style={styles.platformName}>{platform.name}</Text>
+                      <Text style={styles.platformAction}>Tap to order →</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Quick Action Buttons */}
+              <View style={styles.quickActionButtons}>
+                <TouchableOpacity
+                  style={styles.copyButton}
+                  onPress={copyListToClipboard}
+                >
+                  <Ionicons name="copy-outline" size={20} color="#4F46E5" />
+                  <Text style={styles.copyButtonText}>Copy List</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.whatsappButton}
+                  onPress={shareViaWhatsApp}
+                >
+                  <Ionicons name="logo-whatsapp" size={20} color="#25D366" />
+                  <Text style={styles.whatsappButtonText}>Share</Text>
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.infoCard}>
+                <Ionicons name="information-circle-outline" size={20} color="#6B7280" />
+                <Text style={styles.infoText}>
+                  Your list will be copied automatically when you select a platform
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.quickActionCard, styles.quickActionSave]}
-                onPress={() => {
-                  setToast({
-                    visible: true,
-                    message: 'List saved',
-                    type: 'success',
-                  });
-                }}
-              >
-                <Ionicons name="save" size={24} color="#10B981" />
-                <Text style={styles.quickActionSaveText}>
-                  Save List
-                </Text>
-              </TouchableOpacity>
+              </View>
             </View>
-          </View>
+          )}
         </ScrollView>
       </SafeAreaView>
 
@@ -387,39 +501,118 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  quickActionsContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+  // Quick Order Styles
+  quickOrderContainer: {
+    marginHorizontal: 16,
+    marginVertical: 16,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
   },
-  quickActionsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+  quickOrderHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  quickOrderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
     color: '#111827',
+    marginLeft: 8,
+  },
+  quickOrderSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+  },
+  platformsGrid: {
+    gap: 12,
     marginBottom: 16,
   },
-  quickActionsRow: {
+  platformCard: {
     flexDirection: 'row',
-    gap: 16,
-  },
-  quickActionCard: {
-    flex: 1,
-    padding: 16,
+    alignItems: 'center',
+    backgroundColor: 'white',
     borderRadius: 12,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  quickActionOrder: {
+  platformIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  platformInfo: {
+    flex: 1,
+  },
+  platformName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  platformAction: {
+    fontSize: 13,
+    color: '#6B7280',
+  },
+  quickActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 16,
+  },
+  copyButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     backgroundColor: '#EEF2FF',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 6,
   },
-  quickActionSave: {
-    backgroundColor: '#D1FAE5',
-  },
-  quickActionOrderText: {
+  copyButtonText: {
     color: '#4F46E5',
-    fontWeight: '500',
-    marginTop: 8,
+    fontWeight: '600',
+    fontSize: 14,
   },
-  quickActionSaveText: {
-    color: '#059669',
-    fontWeight: '500',
-    marginTop: 8,
+  whatsappButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    gap: 6,
+  },
+  whatsappButtonText: {
+    color: '#16A34A',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FEF3C7',
+    padding: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  infoText: {
+    flex: 1,
+    fontSize: 12,
+    color: '#92400E',
+    lineHeight: 16,
   },
 }); 
