@@ -255,6 +255,17 @@ export const HomeScreen = () => {
               </TouchableOpacity>
 
               <TouchableOpacity
+                onPress={() => navigation.navigate('Utensils')}
+                style={[styles.quickActionCard, styles.quickActionTeal]}
+              >
+                <View style={[styles.quickActionIcon, styles.quickActionIconTeal]}>
+                  <Ionicons name="restaurant-outline" size={24} color="#14B8A6" />
+                </View>
+                <Text style={styles.quickActionTitle}>Kitchen Tools</Text>
+                <Text style={styles.quickActionSubtitle}>Manage utensils</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
                 onPress={() => navigation.navigate('AIChef', {})}
                 style={[styles.quickActionCard, styles.quickActionBlue]}
               >
@@ -523,6 +534,13 @@ const styles = StyleSheet.create({
   },
   quickActionIconOrange: {
     backgroundColor: '#FFEDD5',
+  },
+  quickActionTeal: {
+    borderLeftWidth: 4,
+    borderLeftColor: '#14B8A6',
+  },
+  quickActionIconTeal: {
+    backgroundColor: '#CCFBF1',
   },
   quickActionIconBlue: {
     backgroundColor: '#DBEAFE',

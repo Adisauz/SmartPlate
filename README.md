@@ -47,6 +47,14 @@ SmartPlate is a comprehensive meal planning solution built for the modern kitche
 - **Recipe Suggestions**: Get AI recommendations based on available ingredients
 - **Smart Grocery Lists**: Automatically generate shopping lists from meal plans
 
+### 🍳 Kitchen Utensils Inventory
+- **Equipment Tracking**: Manage your pots, pans, knives, appliances, and all cooking tools
+- **9 Categories**: Cookware, Bakeware, Knives, Utensils, Appliances, Measuring, Prep Tools, Storage, Other
+- **Quick Add**: Pre-populated lists of 40+ common kitchen utensils
+- **AI-Aware Recipes**: Get recipe suggestions based on available equipment
+- **Missing Tool Warnings**: AI alerts you if a recipe needs tools you don't have (⚠️ Needs: Food Processor)
+- **Alternative Suggestions**: Smart alternatives when key equipment is missing
+
 ### 📅 Intelligent Meal Planning
 - **Weekly Planner**: Plan meals by day and meal type (breakfast, lunch, dinner, snacks)
 - **Drag & Drop Interface**: Easily organize your weekly meal schedule
@@ -308,13 +316,15 @@ const API_BASE = 'http://192.168.1.x:8000'; // Your backend URL
 ### Database Schema
 
 The SQLite database includes the following tables:
-- `users` - User accounts and profiles
-- `meals` - Recipe database
+- `users` - User accounts and profiles with dietary preferences
+- `meals` - Recipe database with nutrition info
 - `meal_plans` - Weekly meal plans
 - `meal_plan_items` - Individual meals in plans
 - `pantry_items` - User pantry inventory
 - `grocery_items` - Shopping lists
+- `utensils` - Kitchen equipment inventory
 - `password_reset_tokens` - Password recovery tokens
+- `favorite_meals` - User's favorite recipes
 
 ---
 
@@ -467,6 +477,58 @@ Content-Type: application/json
 #### Delete Pantry Item
 ```http
 DELETE /pantry/{item_id}
+Authorization: Bearer {token}
+```
+
+### Kitchen Utensils
+
+#### Add Utensil
+```http
+POST /utensils/
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "name": "Chef's Knife",
+  "category": "Knives"
+}
+```
+
+#### List Utensils
+```http
+GET /utensils/?category=Cookware
+Authorization: Bearer {token}
+```
+
+#### Get Categories
+```http
+GET /utensils/categories
+Authorization: Bearer {token}
+
+Response:
+{
+  "categories": [
+    "Cookware", "Bakeware", "Knives", "Utensils", 
+    "Appliances", "Measuring", "Prep Tools", "Storage", "Other"
+  ]
+}
+```
+
+#### Update Utensil
+```http
+PUT /utensils/{utensil_id}
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "name": "Large Frying Pan",
+  "category": "Cookware"
+}
+```
+
+#### Delete Utensil
+```http
+DELETE /utensils/{utensil_id}
 Authorization: Bearer {token}
 ```
 
@@ -649,9 +711,11 @@ npx expo run:android
 
 SmartPlate uses OpenAI's GPT models to generate personalized recipes:
 - Analyzes your pantry inventory
+- **Checks your available kitchen equipment**
 - Considers dietary preferences and restrictions
+- **Warns if recipe needs missing utensils** (⚠️ Needs: Stand Mixer)
 - Calculates nutritional information
-- Generates step-by-step instructions
+- Generates detailed step-by-step instructions with specific temperatures, times, and tools
 - Creates beautiful recipe images with Stable Diffusion XL
 
 ### Computer Vision Food Detection
@@ -662,6 +726,16 @@ YOLO (You Only Look Once) integration provides:
 - Multi-item detection in single images
 - Automatic pantry updates from photos
 - OCR support for packaged food labels (with Tesseract)
+
+### Kitchen Equipment Management
+
+Track all your cooking tools and get smart recipe recommendations:
+- **9 Equipment Categories**: Cookware, Bakeware, Knives, Utensils, Appliances, Measuring, Prep Tools, Storage, Other
+- **Quick Add Feature**: 40+ pre-loaded common utensils for fast setup
+- **AI Integration**: Recipes consider what equipment you actually have
+- **Missing Tool Alerts**: Get warned before starting a recipe you can't complete
+- **Alternative Methods**: AI suggests workarounds if key tools are missing
+- **Equipment-Based Filtering**: Only see recipes you can make with your tools
 
 ### Smart Meal Planning
 
@@ -836,6 +910,9 @@ eas build --platform all
 
 ### Upcoming Features
 
+- [x] **Kitchen Utensils Tracking**: ✅ COMPLETED - Full equipment inventory with AI integration
+- [x] **Dietary Preferences**: ✅ COMPLETED - Comprehensive diet, allergy, and cuisine tracking
+- [x] **Detailed Instructions**: ✅ COMPLETED - AI generates step-by-step with temps, times, and tools
 - [ ] **Social Features**: Share recipes with friends, community recipe sharing
 - [ ] **Advanced Analytics**: Detailed nutrition reports and trends
 - [ ] **Meal Prep Mode**: Batch cooking and meal prep planning

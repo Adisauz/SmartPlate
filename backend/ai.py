@@ -46,6 +46,35 @@ async def fetch_user_pantry_items(user_id: int) -> List[str]:
     return [row[0] for row in rows]
 
 
+async def fetch_user_dietary_preferences(user_id: int) -> dict:
+    """Fetch user's dietary preferences, allergies, and cuisine preferences"""
+    query = """SELECT dietary_preferences, allergies, cuisine_preferences 
+               FROM users WHERE id = ?"""
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(query, (user_id,))
+        row = await cursor.fetchone()
+        if row:
+            return {
+                "dietary_preferences": row[0],
+                "allergies": row[1],
+                "cuisine_preferences": row[2]
+            }
+    return {
+        "dietary_preferences": None,
+        "allergies": None,
+        "cuisine_preferences": None
+    }
+
+
+async def fetch_user_utensils(user_id: int) -> List[str]:
+    """Fetch user's kitchen utensils"""
+    query = "SELECT name, category FROM utensils WHERE user_id = ?"
+    async with aiosqlite.connect(DB_PATH) as db:
+        cursor = await db.execute(query, (user_id,))
+        rows = await cursor.fetchall()
+    return [f"{row[0]} ({row[1]})" for row in rows]
+
+
 def generate_food_image(recipe_name: str, ingredients: List[str]) -> str:
     """Generate a food image using Hugging Face Stable Diffusion"""
     try:
@@ -116,11 +145,35 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
         client = OpenAI(api_key=api_key)  # type: ignore
 
         pantry_context = ""
+        dietary_context = ""
+        utensils_context = ""
+        
         if user_id is not None:
+            # Fetch pantry items
             items = await fetch_user_pantry_items(user_id)
             if items:
                 formatted = [f"- {name}" for name in items]
                 pantry_context = "\nUser pantry items:\n" + "\n".join(formatted)
+            
+            # Fetch dietary preferences
+            prefs = await fetch_user_dietary_preferences(user_id)
+            dietary_parts = []
+            
+            if prefs["dietary_preferences"]:
+                dietary_parts.append(f"Diet Type: {prefs['dietary_preferences']}")
+            if prefs["allergies"]:
+                dietary_parts.append(f"⚠️ ALLERGIES (MUST AVOID): {prefs['allergies']}")
+            if prefs["cuisine_preferences"]:
+                dietary_parts.append(f"Preferred Cuisines: {prefs['cuisine_preferences']}")
+            
+            if dietary_parts:
+                dietary_context = "\n\nUser Dietary Preferences:\n" + "\n".join(dietary_parts)
+            
+            # Fetch user's kitchen utensils
+            utensils = await fetch_user_utensils(user_id)
+            if utensils:
+                formatted = [f"- {name}" for name in utensils]
+                utensils_context = "\n\nAvailable Kitchen Utensils:\n" + "\n".join(formatted)
 
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -162,8 +215,20 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                         "- 'Suggest something' → RECIPE REQUEST (return JSON)\n"
                         "- 'How do I...' → COOKING QUESTION (return text)\n"
                         "- 'What is...' → COOKING QUESTION (return text)\n"
-                        "- 'Tips for...' → COOKING QUESTION (return text)\n"
+                        "- 'Tips for...' → COOKING QUESTION (return text)\n\n"
+                        "⚠️ **CRITICAL DIETARY RULES**:\n"
+                        "- If user has ALLERGIES listed below, NEVER include those ingredients in ANY recipe\n"
+                        "- If user has a diet type (vegetarian, vegan, keto, etc.), ALL recipes MUST comply\n"
+                        "- Prefer cuisines the user likes when generating recipes\n"
+                        "- If a recipe cannot be made safely with user's restrictions, suggest alternatives\n\n"
+                        "🍳 **KITCHEN UTENSILS AWARENESS**:\n"
+                        "- If user has utensils listed, consider them when suggesting recipes\n"
+                        "- If a recipe requires utensils not in the list, mention it as: '⚠️ Needs: [missing utensil]'\n"
+                        "- Suggest alternative methods if key utensils are missing\n"
+                        "- Prefer recipes that use available equipment\n"
+                        + dietary_context
                         + pantry_context
+                        + utensils_context
                     ),
                 },
                 {"role": "user", "content": request.question},

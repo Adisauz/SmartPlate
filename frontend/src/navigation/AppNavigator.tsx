@@ -16,6 +16,7 @@ import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 import { ResetPasswordScreen } from '../screens/ResetPasswordScreen';
 import { AIChefScreen } from '../screens/AIChefScreen';
 import { SavedMealsScreen } from '../screens/SavedMealsScreen';
+import { UtensilsScreen } from '../screens/UtensilsScreen';
 
 // Types
 export type RootStackParamList = {
@@ -27,6 +28,7 @@ export type RootStackParamList = {
   MealPlanner: undefined;
   GroceryList: undefined;
   Pantry: undefined;
+  Utensils: undefined;
   Profile: undefined;
   RecipeDetail: { recipe: any };
   AIChef: { initialPrompt?: string };
@@ -165,6 +167,14 @@ export const AppNavigator = () => {
       <Stack.Screen
         name="SavedMeals"
         component={SavedMealsScreen}
+        options={{
+          headerShown: false,
+          animation: 'slide_from_right',
+        }}
+      />
+      <Stack.Screen
+        name="Utensils"
+        component={UtensilsScreen}
         options={{
           headerShown: false,
           animation: 'slide_from_right',
