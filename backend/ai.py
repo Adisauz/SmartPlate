@@ -52,16 +52,40 @@ def generate_food_image(recipe_name: str, ingredients: List[str]) -> str:
         # Initialize the Hugging Face client
         client = InferenceClient(api_key=os.getenv("HF_TOKEN"))
         
-        # Create a detailed prompt for food image generation
+        # Create a detailed, food-focused prompt with negative prompts to avoid inappropriate images
         ingredients_text = ", ".join(ingredients[:5])  # Limit to first 5 ingredients
-        prompt = f"Delicious {recipe_name}, {ingredients_text}, professional food photography, high quality, appetizing, well-lit, restaurant style, food styling, vibrant colors, detailed"
+        
+        # Enhanced prompt with more food-specific details
+        prompt = (
+            f"A beautifully plated dish of {recipe_name}, "
+            f"made with {ingredients_text}, "
+            f"professional food photography, top-down view, "
+            f"served on elegant white plate, garnished, "
+            f"restaurant quality presentation, natural lighting, "
+            f"food magazine cover, appetizing, vibrant colors, "
+            f"high resolution, detailed texture, gourmet cuisine, "
+            f"culinary art, michelin star presentation"
+        )
+        
+        # Negative prompt to avoid generating anything inappropriate
+        negative_prompt = (
+            "person, people, human, face, body, hands, fingers, "
+            "raw meat, blood, uncooked, animals, pets, "
+            "text, watermark, logo, blurry, low quality, "
+            "cartoon, anime, illustration, painting"
+        )
         
         # Use Stable Diffusion XL for better quality
-        model = "stabilityai/stable-diffusion-xl-base-1.0" #hi
-
+        model = "stabilityai/stable-diffusion-xl-base-1.0"
         
-        # Generate the image
-        image = client.text_to_image(prompt, model=model)
+        # Generate the image with negative prompt
+        image = client.text_to_image(
+            prompt, 
+            model=model,
+            negative_prompt=negative_prompt,
+            guidance_scale=7.5,  # Higher = more adherence to prompt
+            num_inference_steps=30  # More steps = better quality
+        )
         
         # Create uploaded_images directory if it doesn't exist
         os.makedirs("uploaded_images", exist_ok=True)
@@ -104,25 +128,34 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                 {
                     "role": "system",
                     "content": (
-                        "You are a helpful cooking assistant. When users ask for recipes, meals, or food suggestions, "
-                        "ALWAYS respond with a JSON array of 2-3 recipe suggestions in this EXACT format:\n"
+                        "You are a helpful cooking assistant AI Chef. Follow these rules carefully:\n\n"
+                        "📋 **RECIPE REQUESTS** (user asks for recipes, meals, food suggestions, or \"what can I cook\"):\n"
+                        "- ALWAYS respond with a JSON array of 2-3 recipe suggestions\n"
+                        "- Use this EXACT JSON format:\n\n"
                         "[{\n"
-                        '  "name": "Recipe Name",\n'
-                        '  "ingredients": ["ingredient 1", "ingredient 2"],\n'
-                        '  "instructions": "Step 1. Do this\\nStep 2. Do that\\nStep 3. Final step",\n'
+                        '  "name": "Descriptive Recipe Name",\n'
+                        '  "ingredients": ["ingredient 1", "ingredient 2", "..."],\n'
+                        '  "instructions": "Step 1. Do this.\\nStep 2. Do that.\\nStep 3. Final step.",\n'
                         '  "nutrients": {"calories": 450, "protein": 30, "carbs": 60, "fat": 15},\n'
                         '  "prep_time": 15,\n'
                         '  "cook_time": 25,\n'
                         '  "image": "",\n'
                         '  "id": 1\n'
                         "}]\n\n"
-                        "After the JSON, add a friendly follow-up message like:\n"
-                        "- 'Would you like recipes with lower calories or different ingredients?'\n"
-                        "- 'Looking for something with less fat or more protein?'\n"
-                        "- 'Want me to suggest vegetarian or vegan alternatives?'\n"
-                        "- 'Need recipes that are quicker to prepare?'\n"
-                        "- 'Interested in recipes with more/fewer carbs?'\n\n"
-                        "For general cooking questions (not recipe requests), respond normally with helpful text."
+                        "- After the JSON array, add ONE friendly follow-up question (optional):\n"
+                        "  Examples: 'Would you like recipes with fewer calories?', 'Want vegetarian alternatives?', 'Need quicker recipes?'\n\n"
+                        "🗨️ **COOKING QUESTIONS** (how-to, tips, techniques, ingredient info):\n"
+                        "- Respond with helpful conversational text (no JSON)\n"
+                        "- Examples: 'How do I boil an egg?', 'What temperature for chicken?', 'Can I substitute butter?'\n\n"
+                        "🎯 **CLASSIFICATION GUIDE**:\n"
+                        "- 'What can I cook?' → RECIPE REQUEST (return JSON)\n"
+                        "- 'Recipe ideas' → RECIPE REQUEST (return JSON)\n"
+                        "- 'Quick meals' → RECIPE REQUEST (return JSON)\n"
+                        "- 'What should I make?' → RECIPE REQUEST (return JSON)\n"
+                        "- 'Suggest something' → RECIPE REQUEST (return JSON)\n"
+                        "- 'How do I...' → COOKING QUESTION (return text)\n"
+                        "- 'What is...' → COOKING QUESTION (return text)\n"
+                        "- 'Tips for...' → COOKING QUESTION (return text)\n"
                         + pantry_context
                     ),
                 },
@@ -145,26 +178,53 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                 # Extract any text after the JSON (follow-up message)
                 follow_up_text = answer[end_idx:].strip()
                 
-                # Generate images for each recipe
-                for recipe in recipes:
-                    if isinstance(recipe, dict) and 'name' in recipe and 'ingredients' in recipe:
-                        image_path = generate_food_image(recipe['name'], recipe['ingredients'])
-                        if image_path:
-                            recipe['image'] = image_path
-                        else:
-                            recipe['image'] = ""
+                # ⚡ SLOW MODE: Generate AI images for recipes (10-15 seconds total)
+                # This will produce beautiful food images but slower responses
                 
-                # Return the updated recipes with images AND the follow-up text
+                from concurrent.futures import ThreadPoolExecutor
+                import concurrent.futures
+                
+                # Generate images in parallel (still takes ~10 sec total)
+                executor = ThreadPoolExecutor(max_workers=3)
+                futures = {}
+                
+                for i, recipe in enumerate(recipes):
+                    if isinstance(recipe, dict) and 'name' in recipe and 'ingredients' in recipe:
+                        future = executor.submit(generate_food_image, recipe['name'], recipe['ingredients'])
+                        futures[future] = i
+                        recipe['image'] = ""  # Default to empty
+                
+                # Wait for all images (with 15 sec timeout)
+                try:
+                    for future in concurrent.futures.as_completed(futures, timeout=15):
+                        try:
+                            image_path = future.result()
+                            recipe_index = futures[future]
+                            if image_path and recipe_index < len(recipes):
+                                recipes[recipe_index]['image'] = image_path
+                                print(f"✅ Generated image for recipe {recipe_index + 1}: {image_path}")
+                        except Exception as e:
+                            print(f"❌ Image generation failed for recipe {futures[future]}: {e}")
+                            recipes[futures[future]]['image'] = ""
+                except concurrent.futures.TimeoutError:
+                    print("⚠️ Image generation timed out after 15 seconds, using placeholders")
+                    # Leave empty images for recipes that timed out
+                
+                print(f"✅ Parsed {len(recipes)} recipes successfully")
+                
+                # Return the updated recipes AND the follow-up text
                 result = {
                     "answer": json.dumps(recipes),
                     "follow_up": follow_up_text if follow_up_text else None
                 }
                 return result
         except (json.JSONDecodeError, KeyError, TypeError) as e:
-            print(f"Error parsing JSON response: {e}")
+            print(f"❌ Error parsing JSON response: {e}")
+            print(f"Response was: {answer[:200]}...")
             # If JSON parsing fails, return the original answer
             pass
         
+        print("⚠️ Returning plain text answer (no JSON detected)")
         return {"answer": answer, "follow_up": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
