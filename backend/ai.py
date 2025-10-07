@@ -134,14 +134,21 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                         "- Use this EXACT JSON format:\n\n"
                         "[{\n"
                         '  "name": "Descriptive Recipe Name",\n'
-                        '  "ingredients": ["ingredient 1", "ingredient 2", "..."],\n'
-                        '  "instructions": "Step 1. Do this.\\nStep 2. Do that.\\nStep 3. Final step.",\n'
+                        '  "ingredients": ["ingredient 1 with quantity", "ingredient 2 with quantity", "..."],\n'
+                        '  "instructions": "Step 1. Detailed action with specific temperature/time/technique. Include utensils needed.\\nStep 2. Next detailed step with cooking method and visual cues to look for.\\nStep 3. Continue with precise instructions and tips.\\nStep 4. Final plating and serving suggestions.",\n'
                         '  "nutrients": {"calories": 450, "protein": 30, "carbs": 60, "fat": 15},\n'
                         '  "prep_time": 15,\n'
                         '  "cook_time": 25,\n'
                         '  "image": "",\n'
                         '  "id": 1\n'
                         "}]\n\n"
+                        "- **IMPORTANT**: Instructions must be highly detailed with:\n"
+                        "  * Exact temperatures (e.g., 'Preheat oven to 375°F/190°C')\n"
+                        "  * Specific cooking times (e.g., 'Sauté for 3-4 minutes until golden')\n"
+                        "  * Visual/sensory cues (e.g., 'until edges are crispy', 'until fragrant')\n"
+                        "  * Required utensils for each step (e.g., 'Using a whisk', 'In a large skillet')\n"
+                        "  * Cooking techniques (e.g., 'dice finely', 'fold gently', 'sear on high heat')\n"
+                        "  * At least 5-8 detailed steps per recipe\n\n"
                         "- After the JSON array, add ONE friendly follow-up question (optional):\n"
                         "  Examples: 'Would you like recipes with fewer calories?', 'Want vegetarian alternatives?', 'Need quicker recipes?'\n\n"
                         "🗨️ **COOKING QUESTIONS** (how-to, tips, techniques, ingredient info):\n"

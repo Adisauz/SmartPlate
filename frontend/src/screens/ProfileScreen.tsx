@@ -31,6 +31,9 @@ type Profile = {
   daily_protein_goal?: number;
   daily_carbs_goal?: number;
   daily_fat_goal?: number;
+  dietary_preferences?: string;
+  allergies?: string;
+  cuisine_preferences?: string;
 };
 
 type TodayNutrition = {
@@ -52,6 +55,7 @@ export const ProfileScreen = () => {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showGoalsModal, setShowGoalsModal] = useState(false);
+  const [showDietaryModal, setShowDietaryModal] = useState(false);
   
   // Edit profile fields
   const [editName, setEditName] = useState('');
@@ -64,6 +68,11 @@ export const ProfileScreen = () => {
   const [editProteinGoal, setEditProteinGoal] = useState('');
   const [editCarbsGoal, setEditCarbsGoal] = useState('');
   const [editFatGoal, setEditFatGoal] = useState('');
+  
+  // Dietary preferences fields
+  const [editDietaryPreferences, setEditDietaryPreferences] = useState('');
+  const [editAllergies, setEditAllergies] = useState('');
+  const [editCuisinePreferences, setEditCuisinePreferences] = useState('');
 
   const [toast, setToast] = useState({
     visible: false,
@@ -91,6 +100,9 @@ export const ProfileScreen = () => {
       setEditProteinGoal(res.data.daily_protein_goal?.toString() || '50');
       setEditCarbsGoal(res.data.daily_carbs_goal?.toString() || '250');
       setEditFatGoal(res.data.daily_fat_goal?.toString() || '70');
+      setEditDietaryPreferences(res.data.dietary_preferences || '');
+      setEditAllergies(res.data.allergies || '');
+      setEditCuisinePreferences(res.data.cuisine_preferences || '');
     } catch (err: any) {
       console.error('Error loading profile:', err);
       if (err.response?.status === 401) {
@@ -166,6 +178,32 @@ export const ProfileScreen = () => {
       setToast({
         visible: true,
         message: 'Failed to update goals',
+        type: 'error',
+      });
+    }
+  };
+
+  const handleSaveDietary = async () => {
+    try {
+      const updates: any = {
+        dietary_preferences: editDietaryPreferences,
+        allergies: editAllergies,
+        cuisine_preferences: editCuisinePreferences,
+      };
+
+      const res = await api.put('/profile/', updates);
+      setProfile(res.data);
+
+      setShowDietaryModal(false);
+      setToast({
+        visible: true,
+        message: 'Dietary preferences updated!',
+        type: 'success',
+      });
+    } catch (err) {
+      setToast({
+        visible: true,
+        message: 'Failed to update dietary preferences',
         type: 'error',
       });
     }
@@ -381,7 +419,53 @@ export const ProfileScreen = () => {
             <Text style={styles.actionText}>Set Daily Goals</Text>
             <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
           </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={styles.actionItem}
+            onPress={() => setShowDietaryModal(true)}
+          >
+            <Ionicons name="leaf-outline" size={24} color="#10B981" />
+            <Text style={styles.actionText}>Dietary Preferences</Text>
+            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+          </TouchableOpacity>
         </View>
+
+        {/* Dietary Info Section */}
+        {(profile?.dietary_preferences || profile?.allergies || profile?.cuisine_preferences) && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Dietary Information</Text>
+            
+            {profile?.dietary_preferences && (
+              <View style={styles.infoCard}>
+                <Ionicons name="leaf" size={20} color="#10B981" />
+                <View style={styles.infoCardContent}>
+                  <Text style={styles.infoCardLabel}>Diet Type</Text>
+                  <Text style={styles.infoCardValue}>{profile.dietary_preferences}</Text>
+                </View>
+              </View>
+            )}
+
+            {profile?.allergies && (
+              <View style={styles.infoCard}>
+                <Ionicons name="alert-circle" size={20} color="#EF4444" />
+                <View style={styles.infoCardContent}>
+                  <Text style={styles.infoCardLabel}>Allergies</Text>
+                  <Text style={styles.infoCardValue}>{profile.allergies}</Text>
+                </View>
+              </View>
+            )}
+
+            {profile?.cuisine_preferences && (
+              <View style={styles.infoCard}>
+                <Ionicons name="restaurant" size={20} color="#F59E0B" />
+                <View style={styles.infoCardContent}>
+                  <Text style={styles.infoCardLabel}>Favorite Cuisines</Text>
+                  <Text style={styles.infoCardValue}>{profile.cuisine_preferences}</Text>
+                </View>
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* Edit Profile Modal */}
@@ -523,6 +607,78 @@ export const ProfileScreen = () => {
                 <Text style={styles.saveButtonText}>Save Goals</Text>
             </TouchableOpacity>
             </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Dietary Preferences Modal */}
+      <Modal
+        visible={showDietaryModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowDietaryModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Dietary Preferences</Text>
+              <TouchableOpacity onPress={() => setShowDietaryModal(false)}>
+                <Ionicons name="close" size={24} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={styles.modalForm}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Diet Type</Text>
+                <Text style={styles.inputHint}>e.g., Vegetarian, Vegan, Keto, Paleo, None</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editDietaryPreferences}
+                  onChangeText={setEditDietaryPreferences}
+                  placeholder="Enter your diet type"
+                  multiline
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Allergies & Intolerances</Text>
+                <Text style={styles.inputHint}>e.g., Nuts, Dairy, Gluten, Shellfish</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editAllergies}
+                  onChangeText={setEditAllergies}
+                  placeholder="List any allergies or food intolerances"
+                  multiline
+                />
+              </View>
+
+              <View style={styles.inputGroup}>
+                <Text style={styles.inputLabel}>Favorite Cuisines</Text>
+                <Text style={styles.inputHint}>e.g., Italian, Mexican, Asian, Mediterranean</Text>
+                <TextInput
+                  style={styles.input}
+                  value={editCuisinePreferences}
+                  onChangeText={setEditCuisinePreferences}
+                  placeholder="What cuisines do you enjoy?"
+                  multiline
+                />
+              </View>
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setShowDietaryModal(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveDietary}
+              >
+                <Text style={styles.saveButtonText}>Save</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -785,6 +941,12 @@ const styles = StyleSheet.create({
     color: '#374151',
     marginBottom: 8,
   },
+  inputHint: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
   input: {
     borderWidth: 1,
     borderColor: '#D1D5DB',
@@ -793,15 +955,57 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#111827',
   },
+  infoCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  infoCardContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  infoCardLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 4,
+  },
+  infoCardValue: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#111827',
+  },
   saveButton: {
     backgroundColor: '#4F46E5',
     paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
     marginTop: 8,
+    flex: 1,
+    marginLeft: 8,
   },
   saveButtonText: {
     color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  cancelButton: {
+    backgroundColor: '#F3F4F6',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 8,
+  },
+  cancelButtonText: {
+    color: '#6B7280',
     fontSize: 16,
     fontWeight: '600',
   },

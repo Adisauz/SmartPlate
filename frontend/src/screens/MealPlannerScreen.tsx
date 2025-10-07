@@ -75,19 +75,24 @@ export const MealPlannerScreen = () => {
           const groupedMeals: Record<number, Record<string, Array<{ id: number; name: string }>>> = {};
           
           for (const item of planRes.data.items) {
-            const mealRes = await api.get(`/meals/${item.meal_id}`);
-            const meal = { id: mealRes.data.id, name: mealRes.data.name };
-            
-            if (!groupedMeals[item.day]) {
-              groupedMeals[item.day] = {};
+            try {
+              const mealRes = await api.get(`/meals/${item.meal_id}`);
+              const meal = { id: mealRes.data.id, name: mealRes.data.name };
+              
+              if (!groupedMeals[item.day]) {
+                groupedMeals[item.day] = {};
+              }
+              
+              // Use the meal_type from the backend
+              const mealType = item.meal_type || 'Breakfast';
+              if (!groupedMeals[item.day][mealType]) {
+                groupedMeals[item.day][mealType] = [];
+              }
+              groupedMeals[item.day][mealType].push(meal);
+            } catch (mealError) {
+              // Skip meals that no longer exist (404 errors)
+              console.log(`Skipping meal ${item.meal_id} - not found in database`);
             }
-            
-            // Use the meal_type from the backend
-            const mealType = item.meal_type || 'Breakfast';
-            if (!groupedMeals[item.day][mealType]) {
-              groupedMeals[item.day][mealType] = [];
-            }
-            groupedMeals[item.day][mealType].push(meal);
           }
           
           setDayMeals(groupedMeals);

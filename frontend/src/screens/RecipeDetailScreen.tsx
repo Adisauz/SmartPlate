@@ -12,6 +12,7 @@ import {
   Animated,
   SafeAreaView,
   StyleSheet,
+  Modal,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -127,6 +128,8 @@ export const RecipeDetailScreen = () => {
   // Use passed recipe data or fallback to default recipe
   const displayRecipe = transformRecipe(recipeData);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [showMealTypeModal, setShowMealTypeModal] = useState(false);
+  const [savedMealId, setSavedMealId] = useState<number | null>(null);
   const [toast, setToast] = useState<{
     visible: boolean;
     message: string;
@@ -137,15 +140,33 @@ export const RecipeDetailScreen = () => {
     type: 'success',
   });
 
-  const handleAddToMealPlan = () => {
-    setToast({
-      visible: true,
-      message: 'Navigating to Meal Planner...',
-      type: 'success',
-    });
-    setTimeout(() => {
-      navigation.navigate('MealPlanner');
-    }, 500);
+  const handleAddToMealPlan = async () => {
+    // First save the meal, then show meal type modal
+    try {
+      const payload = {
+        name: displayRecipe.name,
+        ingredients: Array.isArray(displayRecipe.ingredients)
+          ? displayRecipe.ingredients.map((i: any) => i.name)
+          : [],
+        instructions: Array.isArray(displayRecipe.instructions)
+          ? displayRecipe.instructions.join('\n')
+          : '',
+        nutrients: {
+          calories: Number(displayRecipe.nutrition?.calories ?? 0) || 0,
+          protein: Number(String(displayRecipe.nutrition?.protein ?? '0').replace(/\D/g, '')) || 0,
+          carbs: Number(String(displayRecipe.nutrition?.carbs ?? '0').replace(/\D/g, '')) || 0,
+          fat: Number(String(displayRecipe.nutrition?.fat ?? '0').replace(/\D/g, '')) || 0,
+        },
+        prep_time: 0,
+        cook_time: 0,
+        image: (recipeData?.image as string) ?? '',
+      };
+      const response = await api.post('/meals/', payload);
+      setSavedMealId(response.data.id);
+      setShowMealTypeModal(true);
+    } catch (e) {
+      setToast({ visible: true, message: 'Failed to save meal', type: 'error' });
+    }
   };
 
   const handleAddToGroceryList = async () => {
@@ -218,6 +239,58 @@ export const RecipeDetailScreen = () => {
       setToast({ visible: true, message: 'Meal saved', type: 'success' });
     } catch (e) {
       setToast({ visible: true, message: 'Failed to save meal', type: 'error' });
+    }
+  };
+
+  const addToMealPlanWithType = async (mealType: string) => {
+    if (!savedMealId) return;
+    
+    try {
+      // Get today's day of week (0 = Monday, 6 = Sunday)
+      const today = new Date().getDay();
+      const dayIndex = today === 0 ? 6 : today - 1;
+      
+      // Try to add to existing plan or create new one
+      const plansResponse = await api.get('/plans/');
+      let planId = null;
+      
+      if (plansResponse.data && plansResponse.data.length > 0) {
+        planId = plansResponse.data[0].id;
+      } else {
+        // Create new plan
+        const startDate = new Date().toISOString().slice(0, 10);
+        const newPlanResponse = await api.post('/plans/', {
+          start_date: startDate,
+          items: [],
+        });
+        planId = newPlanResponse.data.id;
+      }
+      
+      // Add meal to the plan with the selected meal type
+      await api.post(`/plans/${planId}/add-meal`, {
+        day: dayIndex,
+        meal_id: savedMealId,
+        meal_type: mealType
+      });
+      
+      setShowMealTypeModal(false);
+      setToast({
+        visible: true,
+        message: `Added to ${mealType} for today!`,
+        type: 'success',
+      });
+      
+      // Navigate after a short delay
+      setTimeout(() => {
+        navigation.navigate('MealPlanner');
+      }, 1500);
+    } catch (error) {
+      console.error('Error adding to meal plan:', error);
+      setToast({
+        visible: true,
+        message: 'Failed to add to meal plan',
+        type: 'error',
+      });
     }
   };
 
@@ -409,6 +482,67 @@ export const RecipeDetailScreen = () => {
           type={toast.type}
           onDismiss={() => setToast({ ...toast, visible: false })}
         />
+
+        {/* Meal Type Selection Modal */}
+        <Modal
+          visible={showMealTypeModal}
+          animationType="fade"
+          transparent={true}
+          onRequestClose={() => setShowMealTypeModal(false)}
+        >
+          <TouchableOpacity 
+            style={styles.modalOverlay}
+            activeOpacity={1}
+            onPress={() => setShowMealTypeModal(false)}
+          >
+            <TouchableOpacity 
+              activeOpacity={1} 
+              onPress={(e) => e.stopPropagation()}
+              style={styles.modalContent}
+            >
+              <View style={styles.modalHeader}>
+                <View style={styles.modalIconContainer}>
+                  <Ionicons name="calendar" size={28} color="#4F46E5" />
+                </View>
+                <Text style={styles.modalTitle}>Add to Meal Plan</Text>
+                <Text style={styles.modalSubtitle}>
+                  Choose when you'd like to eat this meal:
+                </Text>
+                <TouchableOpacity 
+                  onPress={() => setShowMealTypeModal(false)}
+                  style={styles.modalCloseButton}
+                >
+                  <Ionicons name="close-circle" size={32} color="#9CA3AF" />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.mealTypeGrid}>
+                {['Breakfast', 'Lunch', 'Dinner', 'Snacks'].map((mealType) => (
+                  <TouchableOpacity
+                    key={mealType}
+                    style={styles.mealTypeCard}
+                    onPress={() => addToMealPlanWithType(mealType)}
+                  >
+                    <View style={styles.mealTypeIconCircle}>
+                      <Ionicons
+                        name={
+                          mealType === 'Breakfast' ? 'sunny' :
+                          mealType === 'Lunch' ? 'fast-food' :
+                          mealType === 'Dinner' ? 'restaurant' :
+                          'nutrition'
+                        }
+                        size={32}
+                        color="#4F46E5"
+                      />
+                    </View>
+                    <Text style={styles.mealTypeCardText}>{mealType}</Text>
+                    <Ionicons name="arrow-forward-circle" size={24} color="#10B981" />
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </Modal>
       </View>
     </KeyboardAvoidingView>
   );
@@ -619,5 +753,80 @@ const styles = StyleSheet.create({
   nutritionValue: {
     color: '#111827',
     fontWeight: '500',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#111827',
+    marginBottom: 8,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: '#6B7280',
+    textAlign: 'center',
+  },
+  modalCloseButton: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+  },
+  mealTypeGrid: {
+    gap: 12,
+  },
+  mealTypeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#E5E7EB',
+  },
+  mealTypeIconCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#EEF2FF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  mealTypeCardText: {
+    flex: 1,
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
   },
 }); 

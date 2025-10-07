@@ -23,21 +23,67 @@ const { width } = Dimensions.get('window');
 const slides = [
   {
     id: '1',
-    title: 'Welcome to MealPlanner',
-    description: 'Plan your meals, manage your pantry, and never waste food again.',
+    title: '🍽️ Welcome to SmartPlate',
+    description: 'Your AI-powered meal planning companion. Plan smarter, cook better, eat healthier.',
     image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop',
+    icon: '👋',
+    color: '#4F46E5',
   },
   {
     id: '2',
-    title: 'Smart Meal Planning',
-    description: 'Get personalized meal suggestions based on your preferences and dietary needs.',
-    image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=800&auto=format&fit=crop',
+    title: '🤖 AI Chef Assistant',
+    description: 'Chat with your personal AI chef! Get instant recipe ideas, cooking tips, and meal suggestions tailored to your pantry.',
+    image: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=800&auto=format&fit=crop',
+    icon: '🍳',
+    color: '#059669',
   },
   {
     id: '3',
-    title: 'Grocery Shopping Made Easy',
-    description: 'Generate shopping lists automatically and track your pantry inventory.',
+    title: '📸 Smart Pantry Detection',
+    description: 'Snap a photo of your groceries and let AI automatically identify items. Computer vision powered by YOLO technology.',
+    image: 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=800&auto=format&fit=crop',
+    icon: '📦',
+    color: '#DC2626',
+  },
+  {
+    id: '4',
+    title: '📅 Weekly Meal Planner',
+    description: 'Plan your meals by day and type - breakfast, lunch, dinner, and snacks. Track nutrition goals effortlessly.',
+    image: 'https://images.unsplash.com/photo-1589998059171-988d887df646?w=800&auto=format&fit=crop',
+    icon: '📋',
+    color: '#7C3AED',
+  },
+  {
+    id: '5',
+    title: '🎨 AI-Generated Recipe Images',
+    description: 'Every recipe comes with beautiful, appetizing images created by Stable Diffusion AI. Visualize before you cook!',
+    image: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800&auto=format&fit=crop',
+    icon: '🖼️',
+    color: '#F59E0B',
+  },
+  {
+    id: '6',
+    title: '🥗 Dietary Preferences',
+    description: 'Set your diet type, allergies, and cuisine preferences. Get personalized recipes that match your lifestyle.',
+    image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop',
+    icon: '🌱',
+    color: '#10B981',
+  },
+  {
+    id: '7',
+    title: '🛒 Smart Grocery Lists',
+    description: 'Auto-generate shopping lists from your meal plans. Add individual ingredients with one tap.',
     image: 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&auto=format&fit=crop',
+    icon: '✅',
+    color: '#06B6D4',
+  },
+  {
+    id: '8',
+    title: '📊 Nutrition Tracking',
+    description: 'Monitor calories, protein, carbs, and fats. Set daily goals and track your progress in real-time.',
+    image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop',
+    icon: '💪',
+    color: '#EF4444',
   },
 ];
 
@@ -100,15 +146,20 @@ export const OnboardingScreen = () => {
                   key={slide.id}
                   style={[styles.slideContainer, { width }]}
                 >
+                  <View style={[styles.iconContainer, { backgroundColor: slide.color + '20' }]}>
+                    <Text style={styles.iconEmoji}>{slide.icon}</Text>
+                  </View>
                   <Image
                     source={{ uri: slide.image }}
                     style={styles.slideImage}
                     resizeMode="cover"
                     onError={(e) => console.log('Image loading error:', e.nativeEvent.error)}
                   />
-                  <Text style={styles.slideTitle}>
-                    {slide.title}
-                  </Text>
+                  <View style={[styles.titleBadge, { backgroundColor: slide.color }]}>
+                    <Text style={styles.slideTitle}>
+                      {slide.title}
+                    </Text>
+                  </View>
                   <Text style={styles.slideDescription}>
                     {slide.description}
                   </Text>
@@ -129,22 +180,22 @@ export const OnboardingScreen = () => {
               ))}
             </View>
 
+            {/* Progress indicator text */}
+            <Text style={styles.progressText}>
+              {currentSlideIndex + 1} of {slides.length}
+            </Text>
+
             {/* Next/Get Started button */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 onPress={handleNext}
-                style={styles.nextButton}
+                style={[styles.nextButton, { backgroundColor: slides[currentSlideIndex].color }]}
               >
                 <Text style={styles.nextButtonText}>
-                  {currentSlideIndex === slides.length - 1 ? 'Get Started' : 'Next'}
+                  {currentSlideIndex === slides.length - 1 ? '🚀 Get Started' : 'Next →'}
                 </Text>
               </TouchableOpacity>
             </View>
-
-            <Button
-              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
-              onPress={toggleTheme}
-            />
           </View>
         </SafeAreaView>
       </View>
@@ -292,13 +343,18 @@ const styles = StyleSheet.create({
   },
   skipButton: {
     position: 'absolute',
-    right: 16,
-    top: 16,
+    right: 20,
+    top: 20,
     zIndex: 10,
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
   },
   skipText: {
     color: '#4F46E5',
-    fontWeight: '500',
+    fontWeight: '600',
+    fontSize: 14,
   },
   scrollView: {
     flex: 1,
@@ -306,26 +362,67 @@ const styles = StyleSheet.create({
   slideContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 16,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+  },
+  iconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  iconEmoji: {
+    fontSize: 40,
   },
   slideImage: {
-    width: 288,
-    height: 288,
-    marginBottom: 32,
-    borderRadius: 12,
+    width: 280,
+    height: 200,
+    marginBottom: 24,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  titleBadge: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 24,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
   },
   slideTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#111827',
-    marginBottom: 8,
+    color: '#FFFFFF',
     textAlign: 'center',
   },
   slideDescription: {
     fontSize: 16,
-    color: '#6B7280',
+    color: '#4B5563',
     textAlign: 'center',
-    marginBottom: 32,
+    lineHeight: 24,
+    marginBottom: 24,
+    paddingHorizontal: 16,
+  },
+  progressText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    textAlign: 'center',
+    marginBottom: 12,
+    fontWeight: '500',
   },
   paginationContainer: {
     flexDirection: 'row',
@@ -333,29 +430,37 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   paginationDot: {
-    height: 8,
-    width: 8,
-    borderRadius: 4,
-    backgroundColor: '#D1D5DB',
-    marginHorizontal: 4,
+    height: 10,
+    width: 10,
+    borderRadius: 5,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 5,
   },
   paginationDotActive: {
     backgroundColor: '#4F46E5',
+    width: 28,
+    borderRadius: 5,
   },
   buttonContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 32,
+    paddingHorizontal: 24,
+    marginBottom: 40,
   },
   nextButton: {
     backgroundColor: '#4F46E5',
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: 18,
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 5,
   },
   nextButtonText: {
     color: '#ffffff',
     textAlign: 'center',
-    fontWeight: '600',
+    fontWeight: '700',
     fontSize: 18,
+    letterSpacing: 0.5,
   },
 });
 
