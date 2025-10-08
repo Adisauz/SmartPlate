@@ -554,9 +554,6 @@ export const PantryScreen = () => {
                           <Text style={styles.detectedItemName}>
                             {item.name}
                           </Text>
-                          <Text style={styles.confidenceText}>
-                            Confidence: {item.confidence}%
-                          </Text>
                         </View>
                       </View>
                       <Ionicons 
@@ -881,10 +878,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '500',
     color: '#111827',
-  },
-  confidenceText: {
-    fontSize: 14,
-    color: '#6B7280',
   },
   noItemsSection: {
     alignItems: 'center',
