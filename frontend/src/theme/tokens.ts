@@ -22,8 +22,8 @@ export const colors = {
   danger: '#EF4444',
 
   // Gradients
-  indigo: ['#111111', '#1F2937'], // subtle dark gradient
-  teal: ['#4F46E5', '#4F46E5'],   // keep single accent when needed
+  indigo: ['#111111', '#1F2937'], 
+  teal: ['#4F46E5', '#4F46E5'],   
 };
 
 export const spacing = {

@@ -361,7 +361,7 @@ export const RecipeDetailScreen = () => {
                   style={[styles.actionButton, styles.saveButton]}
                   onPress={saveMeal}
                 >
-                  <Ionicons name="bookmark-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Ionicons name="bookmark-outline" size={18} color="#111827" style={{ marginRight: 6 }} />
                   <Text style={styles.saveButtonText}>
                     Save Meal
                   </Text>
@@ -370,7 +370,7 @@ export const RecipeDetailScreen = () => {
                   style={[styles.actionButton, styles.mealPlanButton]}
                   onPress={handleAddToMealPlan}
                 >
-                  <Ionicons name="calendar-outline" size={18} color="#FFFFFF" style={{ marginRight: 6 }} />
+                  <Ionicons name="calendar-outline" size={18} color="white" style={{ marginRight: 6 }} />
                   <Text style={styles.mealPlanButtonText}>
                     Add to Meal Plan
                   </Text>
@@ -381,7 +381,7 @@ export const RecipeDetailScreen = () => {
                 style={[styles.actionButton, styles.groceryButton, { marginTop: 12 }]}
                 onPress={handleAddToGroceryList}
               >
-                <Ionicons name="cart-outline" size={18} color="#059669" style={{ marginRight: 6 }} />
+                <Ionicons name="cart-outline" size={18} color="#111827" style={{ marginRight: 6 }} />
                 <Text style={styles.groceryButtonText}>
                   Add All to Grocery List
                 </Text>
@@ -644,20 +644,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   saveButton: {
-    backgroundColor: '#4F46E5',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
     marginRight: 8,
   },
   mealPlanButton: {
-    backgroundColor: '#059669',
+    backgroundColor: '#4F46E5',
     marginLeft: 8,
   },
   groceryButton: {
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#FFFFFF',
     borderWidth: 1,
-    borderColor: '#D1FAE5',
+    borderColor: '#E5E7EB',
   },
   saveButtonText: {
-    color: 'white',
+    color: '#111827',
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -667,7 +669,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   groceryButtonText: {
-    color: '#059669',
+    color: '#111827',
     textAlign: 'center',
     fontWeight: '600',
   },
