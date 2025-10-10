@@ -95,19 +95,23 @@ export const AIChefScreen = () => {
     try {
       const response = await api.post('/ask-ai/', { question: text.trim() });
       
-      // Try to parse JSON recipes from the response
       let recipes: Recipe[] = [];
       let messageText = response.data.answer;
       let followUpText = response.data.follow_up;
-      
-      try {
-        const parsed = JSON.parse(response.data.answer);
-        if (Array.isArray(parsed)) {
-          recipes = parsed;
-          messageText = `Here are some recipe suggestions for you:`;
-        }
-      } catch {
-        // Not JSON, use as is
+
+      // Prefer structured recipes from API if provided
+      if (Array.isArray(response.data.recipes)) {
+        recipes = response.data.recipes as Recipe[];
+        messageText = 'Here are some recipe suggestions for you:';
+      } else {
+        // Fallback: try to parse answer as JSON
+        try {
+          const parsed = JSON.parse(response.data.answer);
+          if (Array.isArray(parsed)) {
+            recipes = parsed;
+            messageText = 'Here are some recipe suggestions for you:';
+          }
+        } catch {}
       }
 
       const aiMessage: ChatMessage = {

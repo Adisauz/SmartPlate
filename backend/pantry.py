@@ -10,11 +10,11 @@ from database import DB_PATH
 router = APIRouter(prefix="/pantry", tags=["pantry"])
 security = HTTPBearer()
 
-def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)) -> int:
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload["user_id"]
-    except JWTError:
+        return int(payload["user_id"])
+    except (JWTError, KeyError, ValueError):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.post("/", response_model=PantryItemOut)
@@ -48,12 +48,9 @@ async def list_pantry_items(
 @router.put("/{item_id}", response_model=PantryItemOut)
 async def update_pantry_item(item_id: int, item: PantryItemCreate, user_id: int = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
-        # Check if item exists and belongs to user
         cursor = await db.execute("SELECT id FROM pantry_items WHERE id = ? AND user_id = ?", (item_id, user_id))
         if not await cursor.fetchone():
             raise HTTPException(status_code=404, detail="Pantry item not found")
-        
-        # Update the item
         await db.execute("UPDATE pantry_items SET name = ? WHERE id = ? AND user_id = ?", (item.name, item_id, user_id))
         await db.commit()
     return PantryItemOut(id=item_id, user_id=user_id, name=item.name)

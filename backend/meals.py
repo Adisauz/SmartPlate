@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from typing import List, Optional
+from typing import List
 import aiosqlite
 import json
 from models import MealCreate, MealOut, Nutrients
@@ -9,16 +9,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database import DB_PATH
 
 router = APIRouter(prefix="/meals", tags=["meals"])
-security = HTTPBearer(auto_error=False)
+security = HTTPBearer()  # require token
 
-def get_current_user(token: Optional[HTTPAuthorizationCredentials] = Depends(security)):
-    if token is None:
-        return None
+def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)) -> int:
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload["user_id"]
-    except JWTError:
-        return None
+        return int(payload["user_id"])
+    except (JWTError, KeyError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.post("/", response_model=MealOut)
 async def create_meal(meal: MealCreate, user_id: int = Depends(get_current_user)):
@@ -82,19 +80,15 @@ async def list_meals(user_id: int = Depends(get_current_user)):
         )
         rows = await cursor.fetchall()
     
-    meals = []
+    meals: List[MealOut] = []
     for row in rows:
-        # Parse ingredients JSON, handle None case
         ingredients = json.loads(row[2]) if row[2] else []
-        
-        # Create nutrients object
         nutrients = Nutrients(
             calories=row[4] or 0,
             protein=row[5] or 0, 
             carbs=row[6] or 0,
             fat=row[7] or 0
         )
-        
         meal = MealOut(
             id=row[0],
             name=row[1],
@@ -110,7 +104,7 @@ async def list_meals(user_id: int = Depends(get_current_user)):
     return meals
 
 @router.get("/{meal_id}", response_model=MealOut)
-async def get_meal(meal_id: int, user_id: Optional[int] = Depends(get_current_user)):
+async def get_meal(meal_id: int, user_id: int = Depends(get_current_user)):
     async with aiosqlite.connect(DB_PATH) as db:
         cursor = await db.execute(
             """SELECT id, name, ingredients, instructions, calories, protein, carbs, fat, prep_time, cook_time, image 
@@ -122,17 +116,13 @@ async def get_meal(meal_id: int, user_id: Optional[int] = Depends(get_current_us
     if not row:
         raise HTTPException(status_code=404, detail="Meal not found")
     
-    # Parse ingredients JSON, handle None case
     ingredients = json.loads(row[2]) if row[2] else []
-    
-    # Create nutrients object
     nutrients = Nutrients(
         calories=row[4] or 0,
         protein=row[5] or 0, 
         carbs=row[6] or 0,
         fat=row[7] or 0
     )
-    
     return MealOut(
         id=row[0],
         name=row[1],

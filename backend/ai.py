@@ -28,7 +28,7 @@ from database import DB_PATH
 from auth import SECRET_KEY, ALGORITHM
 
 router = APIRouter(prefix="/ask-ai", tags=["ai"])
-security = HTTPBearer(auto_error=False)
+security = HTTPBearer()  # require token
 
 
 class AIRequest(BaseModel):
@@ -194,8 +194,15 @@ async def get_recent_messages(user_id: int, limit: int = 5) -> List[dict]:
 
 
 @router.post("/")
-async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_current_user)):
+async def ask_ai(request: AIRequest, token: HTTPAuthorizationCredentials = Depends(security)):
     try:
+        # Enforce auth
+        try:
+            payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+            user_id: Optional[int] = int(payload.get("user_id"))
+        except Exception:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
         api_key = os.getenv("OPENAI_API_KEY")
         if not api_key or OpenAI is None:
             raise HTTPException(status_code=503, detail="AI service unavailable")
@@ -206,9 +213,7 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
         dietary_context = ""
         utensils_context = ""
 
-        recent_msgs = []
-        if user_id is not None:
-            recent_msgs = await get_recent_messages(user_id, limit=5)
+        recent_msgs = await get_recent_messages(user_id, limit=5)
         
         if user_id is not None:
             # Limit pantry items added to the prompt to reduce tokens
@@ -236,48 +241,22 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                 utensils_context = "\n\nAvailable Kitchen Utensils:\n" + "\n".join(formatted)
 
         system_msg = {
-                    "role": "system",
-                    "content": (
-                        "You are a helpful cooking assistant AI Chef. Follow these rules carefully:\n\n"
-                        "📋 **RECIPE REQUESTS** (user asks for recipes, meals, food suggestions, or \"what can I cook\"):\n"
-                        "- ALWAYS respond with a JSON array of 2-3 recipe suggestions\n"
-                        "- Use this EXACT JSON format:\n\n"
-                        "[{\n"
-                        '  "name": "Descriptive Recipe Name",\n'
-                '  "ingredients": ["ingredient 1 with quantity", "ingredient 2 with quantity", "..."],\n'
-                '  "instructions": "Step 1. Detailed action with specific temperature/time/technique. Include utensils needed.\\nStep 2. Next detailed step with cooking method and visual cues to look for.\\nStep 3. Continue with precise instructions and tips.\\nStep 4. Final plating and serving suggestions.",\n'
-                        '  "nutrients": {"calories": 450, "protein": 30, "carbs": 60, "fat": 15},\n'
-                        '  "prep_time": 15,\n'
-                        '  "cook_time": 25,\n'
-                        '  "image": "",\n'
-                        '  "id": 1\n'
-                        "}]\n\n"
-                "- **IMPORTANT**: Instructions must be clear and concise (6-8 steps).\n\n"
-                        "🗨️ **COOKING QUESTIONS** (how-to, tips, techniques, ingredient info):\n"
-                "- Respond with helpful conversational text (no JSON)\n\n"
-                        "🎯 **CLASSIFICATION GUIDE**:\n"
-                        "- 'What can I cook?' → RECIPE REQUEST (return JSON)\n"
-                "- 'How do I...' → COOKING QUESTION (return text)\n\n"
-                "⚠️ **CRITICAL DIETARY RULES**:\n"
-                "- If user has ALLERGIES listed below, NEVER include those ingredients in ANY recipe\n"
-                "- If user has a diet type (vegetarian, vegan, keto, etc.), ALL recipes MUST comply\n"
-                "- Prefer cuisines the user likes when generating recipes\n"
-                "- If a recipe cannot be made safely with user's restrictions, suggest alternatives\n\n"
-                "🍳 **KITCHEN UTENSILS AWARENESS**:\n"
-                "- If user has utensils listed, consider them when suggesting recipes\n"
-                "- If a recipe requires utensils not in the list, mention it as: '⚠️ Needs: [missing utensil]'\n"
-                "- Suggest alternative methods if key utensils are missing\n"
-                "- Prefer recipes that use available equipment\n"
+            "role": "system",
+            "content": (
+                "You are a helpful cooking assistant AI Chef. Return STRICT JSON ONLY. No markdown, no prose.\n\n"
+                "When the user asks for recipes, respond with EXACTLY this JSON object shape:\n"
+                "{\n  \"recipes\": [\n    {\n      \"name\": \"Descriptive Recipe Name\",\n      \"ingredients\": [\"ingredient with quantity\", \"ingredient\"],\n      \"instructions\": \"Sentence 1.\\nSentence 2.\\nSentence 3.\",\n      \"nutrients\": {\"calories\": 450, \"protein\": 30, \"carbs\": 60, \"fat\": 15},\n      \"prep_time\": 15,\n      \"cook_time\": 25,\n      \"image\": \"\",\n      \"id\": 1\n    }\n  ],\n  \"follow_up\": \"A short, friendly follow-up question\"\n}\n\n"
+                "Rules for instructions: write clear sentences separated by \n, DO NOT prefix with numbers or bullets (no '1.', '-', '•'). Avoid quotes inside sentences when possible. No trailing commas anywhere.\n\n"
+                "If the user asks a cooking question (not recipes), reply with a JSON object: {\"answer\": \"text\", \"recipes\": [] } and keep it short.\n\n"
+                "Apply dietary and equipment rules strictly.\n"
                 + dietary_context
-                        + pantry_context
+                + pantry_context
                 + utensils_context
             ),
         }
-        
-        # Build message list with recent history
+
         messages = [system_msg]
         for m in recent_msgs:
-            # Only keep short messages to control tokens
             clipped = m["content"][:1500]
             messages.append({"role": m["role"], "content": clipped})
         messages.append({"role": "user", "content": request.question})
@@ -287,100 +266,76 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
             messages=messages,
             temperature=0.6,
             max_tokens=600,
+            response_format={"type": "json_object"},
         )
 
         answer = response.choices[0].message.content if response.choices else ""
-        
-        # Persist conversation asynchronously (best effort)
-        if user_id is not None:
-            try:
-                await save_chat_message(user_id, "user", request.question)
-                await save_chat_message(user_id, "assistant", answer)
-            except Exception as e:
-                print(f"Failed to persist chat: {e}")
-        
-        # Try to parse the JSON response and generate/reuse images with caching
+
+        # Persist conversation
         try:
-            start_idx = answer.find('[')
-            end_idx = answer.rfind(']') + 1
-            if start_idx != -1 and end_idx != 0:
-                json_str = answer[start_idx:end_idx]
-                recipes = json.loads(json_str)
-                follow_up_text = answer[end_idx:].strip()
-                
-                # Setup Redis once
+            await save_chat_message(user_id, "user", request.question)
+            await save_chat_message(user_id, "assistant", answer)
+        except Exception as e:
+            print(f"Failed to persist chat: {e}")
+
+        # First try to parse full JSON object
+        try:
+            parsed_obj = json.loads(answer)
+            recipes = parsed_obj.get("recipes") if isinstance(parsed_obj, dict) else None
+            follow_up_text = parsed_obj.get("follow_up") if isinstance(parsed_obj, dict) else None
+
+            # If we have recipes array, optionally generate images
+            if isinstance(recipes, list):
+                # Try cache & generation path (reuse existing code pattern)
                 r = await get_redis()
+                to_generate = []
+                for i, rec in enumerate(recipes):
+                    if not isinstance(rec, dict):
+                        continue
+                    name = rec.get('name') or ''
+                    ingredients = rec.get('ingredients') or []
+                    cache_key = make_image_cache_key(name, ingredients) if name and ingredients else None
+                    img_path = None
+                    if r is not None and cache_key is not None:
+                        try:
+                            img_path = await r.get(cache_key)  # type: ignore
+                        except Exception:
+                            img_path = None
+                    if img_path:
+                        rec['image'] = img_path
+                    else:
+                        rec['image'] = ""
+                        to_generate.append(i)
 
-                # Try to reuse cached images when available
-                to_generate: List[int] = []
-                if isinstance(recipes, list):
-                    for i, recipe in enumerate(recipes):
-                        if not isinstance(recipe, dict):
-                            continue
-                        name = recipe.get('name') or ''
-                        ingredients = recipe.get('ingredients') or []
-                        cache_key = make_image_cache_key(name, ingredients) if name and ingredients else None
-                        img_path = None
-                        if r is not None and cache_key is not None:
-                            try:
-                                img_path = await r.get(cache_key)  # type: ignore
-                            except Exception:
-                                img_path = None
-                        if img_path:
-                            recipe['image'] = img_path
-                        else:
-                            recipe['image'] = ""
-                            to_generate.append(i)
-
-                # Generate missing images (lighter compute) in parallel
                 if to_generate:
                     from concurrent.futures import ThreadPoolExecutor
                     import concurrent.futures
                     executor = ThreadPoolExecutor(max_workers=3)
-                    futures = {}
-                    for idx in to_generate:
-                        rec = recipes[idx]
-                        future = executor.submit(generate_food_image, rec.get('name', ''), rec.get('ingredients', []))
-                        futures[future] = idx
-                        try:
-                            for future in concurrent.futures.as_completed(futures, timeout=12):
-                                try:
-                                    image_path = future.result()
-                                    i = futures[future]
-                                    if image_path:
-                                        recipes[i]['image'] = image_path
-                                        # Cache image path for future requests
-                                        r = await get_redis()
-                                        if r is not None:
-                                            try:
-                                                cache_key = make_image_cache_key(recipes[i].get('name', ''), recipes[i].get('ingredients', []))
-                                                await r.set(cache_key, image_path, ex=7 * 24 * 3600)  # 7 days
-                                            except Exception:
-                                                pass
-                                except Exception as e:
-                                    print(f"Image generation failed: {e}")
-                        except concurrent.futures.TimeoutError:
-                            print("Image generation timed out; continuing without some images")
-
-                # Push recent recipes list (trim to last 10)
-                r = await get_redis()
-                recent_key = make_recent_list_key(user_id)
-                if r is not None and recent_key is not None:
+                    futures = {executor.submit(generate_food_image, recipes[i].get('name', ''), recipes[i].get('ingredients', [])): i for i in to_generate}
                     try:
-                        await r.lpush(recent_key, json.dumps(recipes))  # type: ignore
-                        await r.ltrim(recent_key, 0, 9)  # keep last 10
-                    except Exception:
-                        pass
+                        for future in concurrent.futures.as_completed(futures, timeout=12):
+                            try:
+                                image_path = future.result()
+                                idx = futures[future]
+                                if image_path:
+                                    recipes[idx]['image'] = image_path
+                                    r = await get_redis()
+                                    if r is not None:
+                                        try:
+                                            cache_key = make_image_cache_key(recipes[idx].get('name', ''), recipes[idx].get('ingredients', []))
+                                            await r.set(cache_key, image_path, ex=7 * 24 * 3600)  # 7 days
+                                        except Exception:
+                                            pass
+                            except Exception as e:
+                                print(f"Image generation failed: {e}")
+                    except concurrent.futures.TimeoutError:
+                        print("Image generation timed out")
 
-                result = {
-                    "answer": json.dumps(recipes),
-                    "follow_up": follow_up_text if follow_up_text else None
-                }
-                return result
-        except (json.JSONDecodeError, KeyError, TypeError) as e:
+                return {"answer": "Here are some recipe suggestions for you:", "recipes": recipes, "follow_up": follow_up_text}
+        except Exception as e:
             print(f"Error parsing JSON response: {e}")
-            pass
-        
-        return {"answer": answer, "follow_up": None}
+
+        # Fallback: return plain text if not parsable
+        return {"answer": answer, "recipes": None, "follow_up": None}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

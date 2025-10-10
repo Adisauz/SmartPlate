@@ -4,19 +4,17 @@ from jose import jwt, JWTError
 from typing import Optional, List
 import aiosqlite
 from database import DB_PATH
-from models import PantryItemCreate, PantryItemOut  # Reuse models for simplicity
+from models import PantryItemCreate, PantryItemOut
+from auth import SECRET_KEY, ALGORITHM
 
-SECRET_KEY = "supersecretkey"
-ALGORITHM = "HS256"
 security = HTTPBearer()
-
 router = APIRouter(prefix="/grocery", tags=["grocery"])
 
-def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)):
+def get_current_user(token: HTTPAuthorizationCredentials = Depends(security)) -> int:
     try:
         payload = jwt.decode(token.credentials, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload["user_id"]
-    except JWTError:
+        return int(payload["user_id"])
+    except (JWTError, KeyError, ValueError):
         raise HTTPException(status_code=401, detail="Invalid token")
 
 @router.post("/", response_model=PantryItemOut)
@@ -41,7 +39,6 @@ async def list_grocery_items(
             params.append(f"%{search}%")
         cursor = await db.execute(query, params)
         rows = await cursor.fetchall()
-    
     return [PantryItemOut(id=row[0], user_id=user_id, name=row[2]) for row in rows]
 
 @router.delete("/{item_id}")

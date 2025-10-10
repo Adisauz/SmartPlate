@@ -320,7 +320,7 @@ const styles = StyleSheet.create({
     borderBottomRightRadius: 24,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerGreeting: { fontSize: 22, fontWeight: '800', color: colors.white },
+  headerGreeting: { fontSize: 20, fontWeight: '800', color: '#FFFFFF', maxWidth: '70%' },
   headerSubtitle: { color: '#E5E7EB' },
   headerProfileBtn: {
     width: 40,

@@ -77,6 +77,29 @@ export const RecipeDetailScreen = () => {
       const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
       return `${API_BASE}/static/${filename}`;
     };
+
+    // Best-effort parser to extract quantity and unit (prefer grams) from a free-form ingredient line
+    const parseIngredientLine = (line: string) => {
+      const text = (line || '').trim();
+      // 1) grams: e.g., "Chicken breast 200 g" or "200g chicken breast"
+      const gramMatch = text.match(/(?:(\d+(?:\.\d+)?)\s*(g|grams?))|((g|grams?)\s*(\d+(?:\.\d+)?))/i);
+      if (gramMatch) {
+        const amount = gramMatch[1] || gramMatch[5] || '';
+        const unit = 'g';
+        const name = text.replace(gramMatch[0], '').replace(/\s{2,}/g, ' ').trim();
+        return { name: name || text, amount, unit };
+      }
+      // 2) common units: ml, tsp, tbsp, cup(s)
+      const commonMatch = text.match(/(\d+(?:\.\d+)?)\s*(ml|tsp|tbsp|cups?|cup)/i);
+      if (commonMatch) {
+        const amount = commonMatch[1];
+        const unit = commonMatch[2];
+        const name = text.replace(commonMatch[0], '').replace(/\s{2,}/g, ' ').trim();
+        return { name: name || text, amount, unit };
+      }
+      // 3) no quantity: return name only
+      return { name: text, amount: '', unit: '' };
+    };
     
     return {
       id: aiRecipe.id || '1',
@@ -87,12 +110,15 @@ export const RecipeDetailScreen = () => {
       difficulty: 'Medium', // Default difficulty
       calories: aiRecipe.nutrients?.calories || 0,
       ingredients: Array.isArray(aiRecipe.ingredients) 
-        ? aiRecipe.ingredients.map((ingredient: string, index: number) => ({
-            id: index.toString(),
-            name: ingredient,
-            amount: '1',
-            unit: 'unit'
-          }))
+        ? aiRecipe.ingredients.map((ingredient: string, index: number) => {
+            const parsed = parseIngredientLine(ingredient);
+            return {
+              id: index.toString(),
+              name: parsed.name,
+              amount: parsed.amount,
+              unit: parsed.unit,
+            };
+          })
         : [],
       instructions: aiRecipe.instructions 
         ? (() => {

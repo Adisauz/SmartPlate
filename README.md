@@ -93,9 +93,68 @@ Open in Expo Go or an emulator.
 Backend environment variables:
 - `OPENAI_API_KEY` – required for AI chat/completions
 - `HF_TOKEN` – required for Stable Diffusion image generation
+- `REDIS_URL` – optional; enable Redis cache (e.g., `redis://localhost:6379/0`)
+- `REDIS_DISABLED` – set to `1` to disable Redis cache
+- `AI_IMAGE_FAST` – set to `1` to use lighter SDXL settings (faster/cheaper)
 
 Frontend:
 - `API_BASE` in `frontend/src/utils/api.ts` must point to your backend LAN URL
+
+---
+
+## Redis caching (optional)
+
+Redis is used to reduce latency and cost for AI image generation and to keep short chat history.
+
+- Caches generated recipe image paths for 7 days (keyed by recipe name + ingredients)
+- Stores last 10 recipe result sets per user (`recent_recipes:{user_id}`)
+- Speeds up repeated requests (“quick meals” / “similar recipes”) and avoids re‑generating the same image
+
+Start Redis on Windows (fastest via Docker):
+```
+docker run -d --name redis -p 6379:6379 redis:7-alpine
+```
+Then set:
+```
+# PowerShell
+$env:REDIS_URL="redis://localhost:6379/0"
+```
+If you don’t run Redis, the app continues to work (cache disabled).
+
+---
+
+## Scalability
+
+This project is structured to scale horizontally:
+
+- **Stateless APIs**: JWT auth with FastAPI → can run multiple app instances behind a load balancer
+- **Async I/O**: FastAPI + aiosqlite/DB client + Redis cache → lower latency under load
+- **Static assets**: images are served from `/static` and can be moved to S3/GCS + CDN easily
+
+Recommended path to production:
+
+1. **Containerize & fan out**
+   - Dockerize backend/frontend; run uvicorn/gunicorn with multiple workers
+   - Nginx/ALB in front; enable keep‑alive and compression
+
+2. **Database upgrade**
+   - Move SQLite → Postgres (managed: RDS/Cloud SQL)
+   - Add indexes on hot paths (meals.name, meal_plan_items.meal_plan_id, pantry_items.user_id)
+   - Use Alembic + SQLAlchemy for migrations and types
+
+3. **Caching & queues**
+   - Redis for image path cache (done), chat short‑term memory, plan fragments
+   - Background jobs (Celery/RQ) for heavy tasks (YOLO, SDXL, LLM) to keep API responsive
+
+4. **Media & CDN**
+   - Store generated images in S3/GCS; save URLs in DB
+   - Serve via CDN with cache‑busting filenames
+
+5. **Observability & limits**
+   - Structured logs, request IDs, metrics (p95 latency, queue depth)
+   - Per‑user rate limits on `/ask-ai` and `/detect`, timeouts, input validation
+
+With these steps, you can scale from dev to thousands of users: multiple API pods, a worker pool for AI tasks, managed Postgres, and a Redis cache/queue.
 
 ---
 
@@ -107,7 +166,7 @@ Frontend:
 - Pantry: `GET/POST/PUT/DELETE /pantry/` (with search)
 - Grocery: `GET/POST/DELETE /grocery/`
 - Utensils: `GET/POST/PUT/DELETE /utensils/`, `GET /utensils/categories`
-- AI: `POST /ask-ai/` (question → answer + optional recipes)
+- AI: `POST /ask-ai/` (question → answer + structured `recipes[]`)
 
 Interactive docs: `/docs` and `/redoc` on your backend URL.
 
@@ -126,7 +185,7 @@ mealplanner/
 │   ├── grocery.py             # grocery list
 │   ├── utensils.py            # kitchen equipment
 │   ├── user_profile.py        # profile + nutrition
-│   ├── ai.py                  # AI chat/recipes
+│   ├── ai.py                  # AI chat/recipes (Redis cache optional)
 │   ├── yolo_detection.py      # pantry detection
 │   ├── image_upload.py        # uploads
 │   ├── database.py            # schema + migrations
