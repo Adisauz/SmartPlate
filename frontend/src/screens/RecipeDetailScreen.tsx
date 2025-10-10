@@ -19,7 +19,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Ionicons } from '@expo/vector-icons';
 import { Toast } from '../components/Toast';
-import api from '../utils/api';
+import api, { API_BASE } from '../utils/api';
 
 type RecipeDetailScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'RecipeDetail'>;
 type RecipeDetailScreenRouteProp = RouteProp<RootStackParamList, 'RecipeDetail'>;
@@ -75,7 +75,7 @@ export const RecipeDetailScreen = () => {
       if (imagePath.startsWith('http')) return imagePath;
       // Extract filename from path like "uploaded_images/recipe_xxx.png"
       const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-      return `http://192.168.0.193:8000/static/${filename}`;
+      return `${API_BASE}/static/${filename}`;
     };
     
     return {

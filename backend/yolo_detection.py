@@ -3,7 +3,7 @@ import io
 import json
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, UploadFile, File, HTTPException, Depends
+from fastapi import APIRouter, UploadFile, File, HTTPException, Depends, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from ultralytics import YOLO
@@ -51,8 +51,8 @@ security = HTTPBearer(auto_error=False)
 
 # Load YOLO model (downloads yolov8n.pt if not present)
 try:
-    model = YOLO("yolov8n.pt")
-    logger.info("YOLOv8n model loaded successfully")
+    model = YOLO("best.pt")
+    logger.info("best model loaded successfully")
 except Exception as e:
     logger.error(f"Failed to load YOLO model: {e}")
     raise RuntimeError("YOLO model could not be loaded")
@@ -308,26 +308,32 @@ Be liberal with extraction - include anything that could be a food item, ingredi
 
 @router.post("/food-items")
 async def detect_food_items(
-    file: UploadFile = File(...),
+    file: UploadFile = File(None),
+    image: UploadFile = File(None),
     user_id: int = Depends(get_current_user)
 ):
     """Detect food items in an uploaded image using YOLO + OCR + LLM filtering"""
     try:
+        # Accept either 'file' or 'image' form field
+        upload = file or image
+        if upload is None:
+            raise HTTPException(status_code=422, detail="No image provided. Send multipart/form-data with field 'file' or 'image'.")
+
         # Validate file type
-        if file.content_type and not file.content_type.startswith("image/"):
+        if upload.content_type and not upload.content_type.startswith("image/"):
             return {"success": False, "detected_items": [], "total_items": 0, "error": "File must be an image"}
 
         # Read and open image
-        image_data = await file.read()
+        image_data = await upload.read()
         try:
-            image = Image.open(io.BytesIO(image_data)).convert("RGB")
+            image_obj = Image.open(io.BytesIO(image_data)).convert("RGB")
         except Exception as pil_err:
             return {"success": False, "detected_items": [], "total_items": 0, "error": f"Invalid image file: {pil_err}"}
 
         # ===== STEP 1: Run YOLO Detection =====
         yolo_items: List[Dict] = []
         try:
-            results = model.predict(source=image, save=False, verbose=False, stream=False)
+            results = model.predict(source=image_obj, save=False, verbose=False, stream=False)
             
             # Process detections
             for result in results:
@@ -360,7 +366,7 @@ async def detect_food_items(
             yolo_items = []
 
         # ===== STEP 2: Run OCR (Tesseract) =====
-        ocr_text = extract_text_from_image(image)
+        ocr_text = extract_text_from_image(image_obj)
         
         # ===== STEP 3: Combine with LLM Filtering =====
         llm_result = filter_items_with_llm(yolo_items, ocr_text)
@@ -383,6 +389,8 @@ async def detect_food_items(
             "ocr_items": [item["name"] for item in llm_result.get("ocr_items", [])]
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception(f"Unexpected server error: {e}")
         return {"success": False, "detected_items": [], "total_items": 0, "error": f"Unexpected server error: {str(e)}"}

@@ -8,6 +8,7 @@
     ],
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "userInterfaceStyle": "automatic"
   }
 }

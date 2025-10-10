@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import api from '../utils/api';
+import api, { API_BASE } from '../utils/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -52,7 +52,7 @@ export const HomeScreen = () => {
     if (!imagePath) return 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2';
     if (imagePath.startsWith('http')) return imagePath;
     const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-    return `http://192.168.0.193:8000/static/${filename}`;
+    return `${API_BASE}/static/${filename}`;
   };
 
   useEffect(() => {

@@ -14,7 +14,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Toast } from '../components/Toast';
-import api from '../utils/api';
+import api, { API_BASE } from '../utils/api';
 
 type SavedMealsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SavedMeals'>;
 
@@ -92,7 +92,7 @@ export const SavedMealsScreen = () => {
     if (!imagePath) return 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2';
     if (imagePath.startsWith('http')) return imagePath;
     const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-    return `http://192.168.0.193:8000/static/${filename}`;
+    return `${API_BASE}/static/${filename}`;
   };
 
   const handleMealPress = (meal: SavedMeal) => {

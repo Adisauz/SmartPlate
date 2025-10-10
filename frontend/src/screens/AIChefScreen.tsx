@@ -19,7 +19,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootStackParamList } from '../navigation/AppNavigator';
-import api from '../utils/api';
+import api, { API_BASE } from '../utils/api';
 
 const { height } = Dimensions.get('window');
 
@@ -276,7 +276,7 @@ export const AIChefScreen = () => {
       if (imagePath.startsWith('http')) return imagePath;
       // Extract filename from path like "uploaded_images/recipe_xxx.png"
       const filename = imagePath.includes('/') ? imagePath.split('/').pop() : imagePath;
-      return `http://192.168.0.193:8000/static/${filename}`;
+      return `${API_BASE}/static/${filename}`;
     };
 
     return (
