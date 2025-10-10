@@ -109,6 +109,17 @@ CREATE TABLE IF NOT EXISTS utensils (
 );
 '''
 
+CREATE_CHAT_MESSAGES = '''
+CREATE TABLE IF NOT EXISTS chat_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    role TEXT NOT NULL, -- 'user' | 'assistant'
+    content TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(user_id) REFERENCES users(id)
+);
+'''
+
 async def init_db():
     async with aiosqlite.connect(DB_PATH) as db:
         await db.execute(CREATE_USERS)
@@ -120,6 +131,7 @@ async def init_db():
         await db.execute(CREATE_GROCERY_ITEMS)
         await db.execute(CREATE_PASSWORD_RESET_TOKENS)
         await db.execute(CREATE_UTENSILS)
+        await db.execute(CREATE_CHAT_MESSAGES)
         # Migrate legacy pantry schema that had a 'calories' column
         try:
             cursor = await db.execute("PRAGMA table_info(pantry_items)")
@@ -184,7 +196,6 @@ async def init_db():
             cols = await cursor.fetchall()
             col_names = [col[1] for col in cols]
             
-            # Check if new columns exist, if not add them
             if 'ingredients' not in col_names:
                 await db.execute("ALTER TABLE meals ADD COLUMN ingredients TEXT")
             if 'instructions' not in col_names:

@@ -166,6 +166,33 @@ async def fetch_user_utensils(user_id: int) -> List[str]:
     return [f"{row[0]} ({row[1]})" for row in rows]
 
 
+async def save_chat_message(user_id: int, role: str, content: str) -> None:
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            await db.execute(
+                "INSERT INTO chat_messages (user_id, role, content) VALUES (?, ?, ?)",
+                (user_id, role, content),
+            )
+            await db.commit()
+    except Exception as e:
+        print(f"Failed to save chat message: {e}")
+
+
+async def get_recent_messages(user_id: int, limit: int = 5) -> List[dict]:
+    try:
+        async with aiosqlite.connect(DB_PATH) as db:
+            cursor = await db.execute(
+                "SELECT role, content FROM chat_messages WHERE user_id = ? ORDER BY id DESC LIMIT ?",
+                (user_id, limit),
+            )
+            rows = await cursor.fetchall()
+        # Reverse to chronological order
+        return [{"role": row[0], "content": row[1]} for row in rows[::-1]]
+    except Exception as e:
+        print(f"Failed to load chat messages: {e}")
+        return []
+
+
 @router.post("/")
 async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_current_user)):
     try:
@@ -178,6 +205,10 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
         pantry_context = ""
         dietary_context = ""
         utensils_context = ""
+
+        recent_msgs = []
+        if user_id is not None:
+            recent_msgs = await get_recent_messages(user_id, limit=5)
         
         if user_id is not None:
             # Limit pantry items added to the prompt to reduce tokens
@@ -186,7 +217,7 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
             if items:
                 formatted = [f"- {name}" for name in items]
                 pantry_context = "\nUser pantry items:\n" + "\n".join(formatted)
-            
+
             prefs = await fetch_user_dietary_preferences(user_id)
             dietary_parts = []
             if prefs["dietary_preferences"]:
@@ -204,10 +235,7 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                 formatted = [f"- {name}" for name in utensils]
                 utensils_context = "\n\nAvailable Kitchen Utensils:\n" + "\n".join(formatted)
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
+        system_msg = {
                     "role": "system",
                     "content": (
                         "You are a helpful cooking assistant AI Chef. Follow these rules carefully:\n\n"
@@ -216,42 +244,60 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                         "- Use this EXACT JSON format:\n\n"
                         "[{\n"
                         '  "name": "Descriptive Recipe Name",\n'
-                        '  "ingredients": ["ingredient 1 with quantity", "ingredient 2 with quantity", "..."],\n'
-                        '  "instructions": "Step 1. Detailed action with specific temperature/time/technique. Include utensils needed.\\nStep 2. Next detailed step with cooking method and visual cues to look for.\\nStep 3. Continue with precise instructions and tips.\\nStep 4. Final plating and serving suggestions.",\n'
+                '  "ingredients": ["ingredient 1 with quantity", "ingredient 2 with quantity", "..."],\n'
+                '  "instructions": "Step 1. Detailed action with specific temperature/time/technique. Include utensils needed.\\nStep 2. Next detailed step with cooking method and visual cues to look for.\\nStep 3. Continue with precise instructions and tips.\\nStep 4. Final plating and serving suggestions.",\n'
                         '  "nutrients": {"calories": 450, "protein": 30, "carbs": 60, "fat": 15},\n'
                         '  "prep_time": 15,\n'
                         '  "cook_time": 25,\n'
                         '  "image": "",\n'
                         '  "id": 1\n'
                         "}]\n\n"
-                        "- **IMPORTANT**: Instructions must be clear and concise (6-8 steps).\n\n"
+                "- **IMPORTANT**: Instructions must be clear and concise (6-8 steps).\n\n"
                         "🗨️ **COOKING QUESTIONS** (how-to, tips, techniques, ingredient info):\n"
-                        "- Respond with helpful conversational text (no JSON)\n\n"
+                "- Respond with helpful conversational text (no JSON)\n\n"
                         "🎯 **CLASSIFICATION GUIDE**:\n"
                         "- 'What can I cook?' → RECIPE REQUEST (return JSON)\n"
-                        "- 'How do I...' → COOKING QUESTION (return text)\n\n"
-                        "⚠️ **CRITICAL DIETARY RULES**:\n"
-                        "- If user has ALLERGIES listed below, NEVER include those ingredients in ANY recipe\n"
-                        "- If user has a diet type (vegetarian, vegan, keto, etc.), ALL recipes MUST comply\n"
-                        "- Prefer cuisines the user likes when generating recipes\n"
-                        "- If a recipe cannot be made safely with user's restrictions, suggest alternatives\n\n"
-                        "🍳 **KITCHEN UTENSILS AWARENESS**:\n"
-                        "- If user has utensils listed, consider them when suggesting recipes\n"
-                        "- If a recipe requires utensils not in the list, mention it as: '⚠️ Needs: [missing utensil]'\n"
-                        "- Suggest alternative methods if key utensils are missing\n"
-                        "- Prefer recipes that use available equipment\n"
-                        + dietary_context
+                "- 'How do I...' → COOKING QUESTION (return text)\n\n"
+                "⚠️ **CRITICAL DIETARY RULES**:\n"
+                "- If user has ALLERGIES listed below, NEVER include those ingredients in ANY recipe\n"
+                "- If user has a diet type (vegetarian, vegan, keto, etc.), ALL recipes MUST comply\n"
+                "- Prefer cuisines the user likes when generating recipes\n"
+                "- If a recipe cannot be made safely with user's restrictions, suggest alternatives\n\n"
+                "🍳 **KITCHEN UTENSILS AWARENESS**:\n"
+                "- If user has utensils listed, consider them when suggesting recipes\n"
+                "- If a recipe requires utensils not in the list, mention it as: '⚠️ Needs: [missing utensil]'\n"
+                "- Suggest alternative methods if key utensils are missing\n"
+                "- Prefer recipes that use available equipment\n"
+                + dietary_context
                         + pantry_context
-                        + utensils_context
-                    ),
-                },
-                {"role": "user", "content": request.question},
-            ],
+                + utensils_context
+            ),
+        }
+        
+        # Build message list with recent history
+        messages = [system_msg]
+        for m in recent_msgs:
+            # Only keep short messages to control tokens
+            clipped = m["content"][:1500]
+            messages.append({"role": m["role"], "content": clipped})
+        messages.append({"role": "user", "content": request.question})
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=messages,
             temperature=0.6,
             max_tokens=600,
         )
 
         answer = response.choices[0].message.content if response.choices else ""
+        
+        # Persist conversation asynchronously (best effort)
+        if user_id is not None:
+            try:
+                await save_chat_message(user_id, "user", request.question)
+                await save_chat_message(user_id, "assistant", answer)
+            except Exception as e:
+                print(f"Failed to persist chat: {e}")
         
         # Try to parse the JSON response and generate/reuse images with caching
         try:
@@ -261,7 +307,7 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                 json_str = answer[start_idx:end_idx]
                 recipes = json.loads(json_str)
                 follow_up_text = answer[end_idx:].strip()
-
+                
                 # Setup Redis once
                 r = await get_redis()
 
@@ -296,25 +342,25 @@ async def ask_ai(request: AIRequest, user_id: Optional[int] = Depends(get_curren
                         rec = recipes[idx]
                         future = executor.submit(generate_food_image, rec.get('name', ''), rec.get('ingredients', []))
                         futures[future] = idx
-                    try:
-                        for future in concurrent.futures.as_completed(futures, timeout=12):
-                            try:
-                                image_path = future.result()
-                                i = futures[future]
-                                if image_path:
-                                    recipes[i]['image'] = image_path
-                                    # Cache image path for future requests
-                                    r = await get_redis()
-                                    if r is not None:
-                                        try:
-                                            cache_key = make_image_cache_key(recipes[i].get('name', ''), recipes[i].get('ingredients', []))
-                                            await r.set(cache_key, image_path, ex=7 * 24 * 3600)  # 7 days
-                                        except Exception:
-                                            pass
-                            except Exception as e:
-                                print(f"Image generation failed: {e}")
-                    except concurrent.futures.TimeoutError:
-                        print("Image generation timed out; continuing without some images")
+                        try:
+                            for future in concurrent.futures.as_completed(futures, timeout=12):
+                                try:
+                                    image_path = future.result()
+                                    i = futures[future]
+                                    if image_path:
+                                        recipes[i]['image'] = image_path
+                                        # Cache image path for future requests
+                                        r = await get_redis()
+                                        if r is not None:
+                                            try:
+                                                cache_key = make_image_cache_key(recipes[i].get('name', ''), recipes[i].get('ingredients', []))
+                                                await r.set(cache_key, image_path, ex=7 * 24 * 3600)  # 7 days
+                                            except Exception:
+                                                pass
+                                except Exception as e:
+                                    print(f"Image generation failed: {e}")
+                        except concurrent.futures.TimeoutError:
+                            print("Image generation timed out; continuing without some images")
 
                 # Push recent recipes list (trim to last 10)
                 r = await get_redis()

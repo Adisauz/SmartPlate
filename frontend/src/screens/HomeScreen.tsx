@@ -16,6 +16,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import api, { API_BASE } from '../utils/api';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { colors } from '../theme/tokens';
+import { Skeleton } from '../components/ui/Skeleton';
 
 type PantryItem = { id: number; name: string };
 
@@ -99,69 +101,71 @@ export const HomeScreen = () => {
       <SafeAreaView style={styles.safeArea}>
         <ScrollView showsVerticalScrollIndicator={false}>
           {/* Header */}
-          <View style={styles.header}>
+          <LinearGradient
+            colors={[colors.indigo[0], colors.indigo[1]]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.headerGradient}
+          >
             <View style={styles.headerRow}>
               <View>
-                <Text style={styles.greeting}>
-                  Hello, {userName}
-                </Text>
-                <Text style={styles.subGreeting}>What's cooking today?</Text>
+                <Text style={styles.headerGreeting}>Hello, {userName}</Text>
+                <Text style={styles.headerSubtitle}>What's cooking today?</Text>
               </View>
               <TouchableOpacity
                 onPress={() => navigation.navigate('Profile')}
-                style={styles.profileButton}
+                style={styles.headerProfileBtn}
               >
-                <Ionicons name="person-outline" size={24} color="#4F46E5" />
+                <Ionicons name="person-outline" size={24} color={colors.primary} />
               </TouchableOpacity>
             </View>
-          </View>
+          </LinearGradient>
 
           {/* AI Chef Feature Card */}
           <View style={styles.aiChefContainer}>
             <TouchableOpacity onPress={() => navigation.navigate('AIChef', {})}>
-              <LinearGradient
-                colors={["#3B82F6", "#9333EA"]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.aiChefGradient}
-              >
+              <View style={styles.aiChefMonoCard}>
                 <View style={styles.aiChefContent}>
                   <View style={styles.aiChefLeft}>
                     <View style={styles.aiChefTitleRow}>
                       <Text style={styles.aiChefEmoji}>🤖</Text>
-                      <Text style={styles.aiChefTitle}>AI Chef Assistant</Text>
+                      <Text style={styles.aiChefTitleMono}>AI Chef Assistant</Text>
                     </View>
-                    <Text style={styles.aiChefDescription}>
+                    <Text style={styles.aiChefDescriptionMono}>
                       Get instant cooking advice, recipe suggestions, and meal planning help
                     </Text>
-                    <View style={styles.aiChefBadge}>
-                      <Text style={styles.aiChefBadgeText}>Ask me anything! 💬</Text>
+                    <View style={styles.aiChefBadgeMono}>
+                      <Text style={styles.aiChefBadgeTextMono}>Ask me anything</Text>
                     </View>
                   </View>
                   <View style={styles.aiChefRight}>
-                    <View style={styles.aiChefIconCircle}>
-                      <Ionicons name="chatbubble-ellipses" size={24} color="#FFFFFF" />
+                    <View style={styles.aiChefIconCircleMono}>
+                      <Ionicons name="chatbubble-ellipses" size={22} color={colors.black} />
                     </View>
                   </View>
                 </View>
-              </LinearGradient>
+              </View>
             </TouchableOpacity>
           </View>
 
           {/* Your Saved Recipes */}
           <View style={styles.recipesSection}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>
-                Your Saved Recipes
-              </Text>
+              <Text style={styles.sectionTitle}>Your Saved Recipes</Text>
               <TouchableOpacity onPress={() => navigation.navigate('SavedMeals')}>
                 <Text style={styles.seeAllText}>See All →</Text>
               </TouchableOpacity>
             </View>
             {loading ? (
-              <View style={styles.loadingContainer}>
-                <Text style={styles.loadingText}>Loading recipes...</Text>
-              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16 }}
+              >
+                <Skeleton style={{ width: CARD_WIDTH, height: 192, marginRight: 16 }} />
+                <Skeleton style={{ width: CARD_WIDTH, height: 192, marginRight: 16 }} />
+                <Skeleton style={{ width: CARD_WIDTH, height: 192 }} />
+              </ScrollView>
             ) : displayRecipes.length === 0 ? (
               <View style={styles.emptyContainer}>
                 <Text style={styles.emptyText}>No saved recipes yet</Text>
@@ -226,7 +230,7 @@ export const HomeScreen = () => {
                 style={[styles.quickActionCard, styles.quickActionIndigo]}
               >
                 <View style={[styles.quickActionIcon, styles.quickActionIconIndigo]}>
-                  <Ionicons name="calendar-outline" size={24} color="#4F46E5" />
+                  <Ionicons name="calendar-outline" size={24} color={colors.primary} />
                 </View>
                 <Text style={styles.quickActionTitle}>Meal Planner</Text>
                 <Text style={styles.quickActionSubtitle}>Plan your meals</Text>
@@ -306,100 +310,59 @@ export const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: 'white',
-  },
-  safeArea: {
-    flex: 1,
-  },
-  header: {
+  container: { flex: 1, backgroundColor: colors.white },
+  safeArea: { flex: 1 },
+  headerGradient: {
     paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 20,
+    paddingBottom: 28,
+    borderBottomLeftRadius: 24,
+    borderBottomRightRadius: 24,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  greeting: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  subGreeting: {
-    color: '#6B7280',
-  },
-  profileButton: {
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  headerGreeting: { fontSize: 22, fontWeight: '800', color: colors.white },
+  headerSubtitle: { color: '#E5E7EB' },
+  headerProfileBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.white,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  aiChefContainer: {
-    paddingHorizontal: 16,
-    marginBottom: 24,
-  },
-  aiChefGradient: {
+  aiChefContainer: { paddingHorizontal: 16, marginTop: 16, marginBottom: 24 },
+  aiChefMonoCard: {
     borderRadius: 12,
-    padding: 24,
-    shadowColor: '#4F46E5',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.gray200,
+    backgroundColor: colors.white,
   },
-  aiChefContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  aiChefLeft: {
-    flex: 1,
-  },
-  aiChefTitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  aiChefEmoji: {
-    fontSize: 24,
-    marginRight: 8,
-  },
-  aiChefTitle: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 18,
-  },
-  aiChefDescription: {
-    color: '#DBEAFE',
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  aiChefBadge: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  aiChefContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  aiChefLeft: { flex: 1 },
+  aiChefTitleRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8 },
+  aiChefEmoji: { fontSize: 20, marginRight: 8 },
+  aiChefTitleMono: { color: colors.black, fontWeight: '700', fontSize: 18 },
+  aiChefDescriptionMono: { color: colors.gray600, fontSize: 14, marginBottom: 12 },
+  aiChefBadgeMono: {
+    borderWidth: 1,
+    borderColor: colors.gray200,
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 16,
+    borderRadius: 14,
   },
-  aiChefBadgeText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  aiChefRight: {
-    marginLeft: 16,
-  },
-  aiChefIconCircle: {
-    width: 48,
-    height: 48,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 24,
+  aiChefBadgeTextMono: { color: colors.black, fontSize: 12, fontWeight: '500' },
+  aiChefRight: { marginLeft: 16 },
+  aiChefIconCircleMono: {
+    width: 44,
+    height: 44,
+    backgroundColor: colors.gray100,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.gray200,
   },
   recipesSection: {
     marginTop: 16,
@@ -499,32 +462,27 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 16,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.gray200,
   },
-  quickActionIndigo: {
-    backgroundColor: '#EEF2FF',
-  },
-  quickActionGreen: {
-    backgroundColor: '#F0FDF4',
-  },
-  quickActionOrange: {
-    backgroundColor: '#FFF7ED',
-  },
-  quickActionBlue: {
-    backgroundColor: '#EFF6FF',
-  },
-  quickActionPink: {
-    backgroundColor: '#FDF2F8',
-  },
-  quickActionPurple: {
-    backgroundColor: '#FAF5FF',
-  },
+  quickActionIndigo: { borderLeftWidth: 4, borderLeftColor: colors.primary },
+  quickActionGreen: { borderLeftWidth: 4, borderLeftColor: '#059669' },
+  quickActionOrange: { borderLeftWidth: 4, borderLeftColor: '#D97706' },
+  quickActionBlue: { borderLeftWidth: 4, borderLeftColor: '#2563EB' },
+  quickActionPink: { borderLeftWidth: 4, borderLeftColor: '#DB2777' },
+  quickActionPurple: { borderLeftWidth: 4, borderLeftColor: '#7C3AED' },
+  quickActionTeal: { borderLeftWidth: 4, borderLeftColor: '#14B8A6' },
   quickActionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
+    backgroundColor: colors.gray100,
+    borderWidth: 1,
+    borderColor: colors.gray200,
   },
   quickActionIconIndigo: {
     backgroundColor: '#E0E7FF',
@@ -535,13 +493,6 @@ const styles = StyleSheet.create({
   quickActionIconOrange: {
     backgroundColor: '#FFEDD5',
   },
-  quickActionTeal: {
-    borderLeftWidth: 4,
-    borderLeftColor: '#14B8A6',
-  },
-  quickActionIconTeal: {
-    backgroundColor: '#CCFBF1',
-  },
   quickActionIconBlue: {
     backgroundColor: '#DBEAFE',
   },
@@ -551,12 +502,9 @@ const styles = StyleSheet.create({
   quickActionIconPurple: {
     backgroundColor: '#F3E8FF',
   },
-  quickActionTitle: {
-    color: '#111827',
-    fontWeight: '500',
+  quickActionIconTeal: {
+    backgroundColor: '#CCFBF1',
   },
-  quickActionSubtitle: {
-    color: '#6B7280',
-    fontSize: 12,
-  },
+  quickActionTitle: { color: colors.black, fontWeight: '600' },
+  quickActionSubtitle: { color: colors.gray600, fontSize: 12 },
 }); 
